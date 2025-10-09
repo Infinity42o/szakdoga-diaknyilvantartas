@@ -60,6 +60,16 @@
             "column": "id"
           }
         }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_beiratkozas_kurzus",
+          "columns": [
+            "kurzus_id"
+          ],
+          "unique": false
+        }
       ]
     },
     {
@@ -145,7 +155,22 @@
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "neptun",
+          "columns": [
+            "neptun"
+          ]
+        },
+        {
+          "name": "uq_hallgato_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "kurzus",
@@ -236,6 +261,23 @@
             "column": "id"
           }
         }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_kurzus_tantargy",
+          "columns": [
+            "tantargy_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_kurzus_tanar",
+          "columns": [
+            "tanar_id"
+          ],
+          "unique": false
+        }
       ]
     },
     {
@@ -281,7 +323,16 @@
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tanar_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "tantargy",
@@ -335,7 +386,16 @@
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tantargy_kod",
+          "columns": [
+            "kod"
+          ]
+        }
+      ],
+      "indexes": []
     }
   ]
 }

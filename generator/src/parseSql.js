@@ -15,7 +15,7 @@ function parseDatabaseName(sql) {
   return null;
 }
 
-// Csak CREATE TABLE blokkok (VIEW nem!)
+// Csak CREATE TABLE blokkok
 function parseCreateTableBlocks(sql) {
   const blocks = [];
   const re = /CREATE\s+TABLE\s+`?(\w+)`?\s*\(([\s\S]*?)\)\s*;/gim;
@@ -35,9 +35,7 @@ function extractEnumValues(line) {
   const re = /'((?:\\'|[^'])*)'|"((?:\\"|[^"])*)"/g;
   let mm;
   while ((mm = re.exec(inside))) {
-    const v = (mm[1] ?? mm[2])
-      .replace(/\\'/g, "'")
-      .replace(/\\"/g, '"');
+    const v = (mm[1] ?? mm[2]).replace(/\\'/g, "'").replace(/\\"/g, '"');
     vals.push(v);
   }
   return vals.length ? vals : null;
@@ -52,14 +50,16 @@ function parseColumnsAndConstraintsFromCreate(body) {
   const columns = [];
   const primaryKey = [];
   const foreignKeys = [];
+  const uniqueKeys = [];
+  const indexes = [];
 
   for (let raw of lines) {
     const line = raw.replace(/,+\s*$/, "");
-    // táblaszintű opciók / egyéb zaj kiszűrése
-if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION|KEY|UNIQUE|INDEX)\b/i.test(line)) {
-  continue;
-}
 
+    // Zaj sorok kiszűrése (NE szűrd a KEY/UNIQUE/INDEX sorokat!)
+    if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION)\b/i.test(line)) {
+      continue;
+    }
 
     // Tábla-szintű PRIMARY KEY (...)
     if (/^PRIMARY\s+KEY/i.test(line)) {
@@ -75,14 +75,36 @@ if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION|KEY|UNIQUE|IND
 
     // Tábla-szintű FOREIGN KEY (`col`) REFERENCES `table`(`id`)
     if ((/^CONSTRAINT\b/i.test(line) || /^FOREIGN\s+KEY\b/i.test(line)) && /FOREIGN\s+KEY/i.test(line)) {
-      const colM = line.match(/FOREIGN\s+KEY\s*\((`?\w+`?)\)/i);
+      const colM = line.match(/FOREIGN\s+KEY\s*\(([^)]+)\)/i);
       const refM = line.match(/REFERENCES\s+`?(\w+)`?\s*\(`?(\w+)`?\)/i);
       if (colM && refM) {
         const cols = colM[1].replace(/[`]/g, "").split(/\s*,\s*/);
         foreignKeys.push({
-          column: cols[0].replace(/[`]/g, ""),
+          column: cols[0],
           references: { table: refM[1], column: refM[2] },
         });
+      }
+      continue;
+    }
+
+    // Tábla-szintű UNIQUE KEY `name` (`a`,`b`)
+    if (/^(UNIQUE\s+KEY|UNIQUE\s+INDEX)\b/i.test(line)) {
+      const name = (line.match(/^(?:UNIQUE\s+(?:KEY|INDEX))\s+`?(\w+)`?/i)?.[1]) || null;
+      const colsMatch = line.match(/\(([^)]+)\)/);
+      if (colsMatch) {
+        const cols = colsMatch[1].split(",").map(s => s.replace(/[`'"]/g, "").trim());
+        uniqueKeys.push({ name, columns: cols });
+      }
+      continue;
+    }
+
+    // Tábla-szintű sima INDEX/KEY `name` (`a`,`b`)
+    if (/^(KEY|INDEX)\b/i.test(line)) {
+      const name = (line.match(/^(?:KEY|INDEX)\s+`?(\w+)`?/i)?.[1]) || null;
+      const colsMatch = line.match(/\(([^)]+)\)/);
+      if (colsMatch) {
+        const cols = colsMatch[1].split(",").map(s => s.replace(/[`'"]/g, "").trim());
+        indexes.push({ name, columns: cols, unique: false });
       }
       continue;
     }
@@ -99,10 +121,8 @@ if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION|KEY|UNIQUE|IND
       const defM = line.match(/\bDEFAULT\s+([^,\s]+)/i);
       if (defM) def = defM[1].replace(/^['"]|['"]$/g, "");
 
-      // ENUM értékek
       const enumValues = extractEnumValues(line);
 
-      // Inline PRIMARY KEY (ritkább MySQL-ben, de kezeljük)
       if (/\bPRIMARY\s+KEY\b/i.test(line)) primaryKey.push(name);
 
       columns.push({ name, type, allowNull, autoIncrement, unique, default: def, enumValues });
@@ -110,10 +130,10 @@ if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION|KEY|UNIQUE|IND
     }
   }
 
-  return { columns, primaryKey, foreignKeys };
+  return { columns, primaryKey, foreignKeys, uniqueKeys, indexes };
 }
 
-// ALTER TABLE ... ; blokkok kibányászása (PRIMARY/FOREIGN KEY)
+// ALTER TABLE blokkok
 function parseAlterTableBlocks(sql) {
   const blocks = [];
   const re = /ALTER\s+TABLE\s+`?(\w+)`?\s+([\s\S]*?)\s*;/gim;
@@ -127,6 +147,8 @@ function parseAlterTableBlocks(sql) {
 function extractConstraintsFromAlter(body) {
   const pk = [];
   const fks = [];
+  const uniqueKeys = [];
+  const indexes = [];
 
   // ADD PRIMARY KEY (`a`,`b`)
   const pkRe = /ADD\s+PRIMARY\s+KEY\s*\(([^)]+)\)/gim;
@@ -149,7 +171,25 @@ function extractConstraintsFromAlter(body) {
     });
   }
 
-  return { pk, fks };
+  // ADD UNIQUE KEY `name` (`a`,`b`)
+  const ukRe = /ADD\s+UNIQUE\s+(?:KEY|INDEX)\s+`?(\w+)`?\s*\(([^)]+)\)/gim;
+  let um;
+  while ((um = ukRe.exec(body))) {
+    const name = um[1];
+    const cols = um[2].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
+    uniqueKeys.push({ name, columns: cols });
+  }
+
+  // ADD KEY/INDEX `name` (`a`,`b`)
+  const idxRe = /ADD\s+(?:KEY|INDEX)\s+`?(\w+)`?\s*\(([^)]+)\)/gim;
+  let im;
+  while ((im = idxRe.exec(body))) {
+    const name = im[1];
+    const cols = im[2].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
+    indexes.push({ name, columns: cols, unique: false });
+  }
+
+  return { pk, fks, uniqueKeys, indexes };
 }
 
 function parseSchema(sqlRaw) {
@@ -160,16 +200,16 @@ function parseSchema(sqlRaw) {
   const createBlocks = parseCreateTableBlocks(sql);
   const tableMap = new Map();
   for (const { table, body } of createBlocks) {
-    const { columns, primaryKey, foreignKeys } = parseColumnsAndConstraintsFromCreate(body);
-    tableMap.set(table, { name: table, columns, primaryKey, foreignKeys });
+    const { columns, primaryKey, foreignKeys, uniqueKeys, indexes } = parseColumnsAndConstraintsFromCreate(body);
+    tableMap.set(table, { name: table, columns, primaryKey, foreignKeys, uniqueKeys, indexes });
   }
 
-  // ALTER TABLE-k (PK/FK hozzáfűzés)
+  // ALTER TABLE-k (PK/FK/UNIQUE/INDEX hozzáfűzés)
   const alterBlocks = parseAlterTableBlocks(sql);
   for (const { table, body } of alterBlocks) {
     const t = tableMap.get(table);
     if (!t) continue;
-    const { pk, fks } = extractConstraintsFromAlter(body);
+    const { pk, fks, uniqueKeys, indexes } = extractConstraintsFromAlter(body);
     if (pk.length) {
       const set = new Set([...(t.primaryKey || []), ...pk]);
       t.primaryKey = Array.from(set);
@@ -177,22 +217,23 @@ function parseSchema(sqlRaw) {
     if (fks.length) {
       t.foreignKeys = [...(t.foreignKeys || []), ...fks];
     }
+    if (uniqueKeys.length) {
+      t.uniqueKeys = [...(t.uniqueKeys || []), ...uniqueKeys];
+    }
+    if (indexes.length) {
+      t.indexes = [...(t.indexes || []), ...indexes];
+    }
   }
 
-  // Nézetek kiszűrése – OR REPLACE / ALGORITHM / DEFINER / SQL SECURITY variánsokkal
+  // Nézetek kiszűrése – több variáns kezelése
   const viewRegex =
     /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
   let vm;
   while ((vm = viewRegex.exec(sql))) {
     tableMap.delete(vm[1]);
   }
-  // (opcionális extra) v_-val kezdődő neveket is dobd:
-  // for (const name of Array.from(tableMap.keys())) if (name.startsWith("v_")) tableMap.delete(name);
 
-  return {
-    database,
-    tables: Array.from(tableMap.values()),
-  };
+  return { database, tables: Array.from(tableMap.values()) };
 }
 
 function main() {

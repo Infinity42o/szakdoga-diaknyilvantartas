@@ -7,6 +7,12 @@ Táblák száma: 5
     - hallgato_id → hallgato(id)
     - kurzus_id → kurzus(id)
 
+  UNIQUE kulcsok:
+    (nincs)
+
+  Indexek:
+    - ix_beiratkozas_kurzus: [kurzus_id]
+
   Mezők:
     - hallgato_id : int(10) UNSIGNED NOT NULL
       
@@ -19,6 +25,13 @@ Táblák száma: 5
 - hallgato (8 mező)
   PK: id
   FK-k:
+    (nincs)
+
+  UNIQUE kulcsok:
+    - neptun: [neptun]
+    - uq_hallgato_email: [email]
+
+  Indexek:
     (nincs)
 
   Mezők:
@@ -44,6 +57,13 @@ Táblák száma: 5
     - tanar_id → tanar(id)
     - tantargy_id → tantargy(id)
 
+  UNIQUE kulcsok:
+    (nincs)
+
+  Indexek:
+    - ix_kurzus_tantargy: [tantargy_id]
+    - ix_kurzus_tanar: [tanar_id]
+
   Mezők:
     - id : int(10) UNSIGNED NOT NULL
       
@@ -64,6 +84,12 @@ Táblák száma: 5
   FK-k:
     (nincs)
 
+  UNIQUE kulcsok:
+    - uq_tanar_email: [email]
+
+  Indexek:
+    (nincs)
+
   Mezők:
     - id : int(10) UNSIGNED NOT NULL
       
@@ -76,6 +102,12 @@ Táblák száma: 5
 - tantargy (5 mező)
   PK: id
   FK-k:
+    (nincs)
+
+  UNIQUE kulcsok:
+    - uq_tantargy_kod: [kod]
+
+  Indexek:
     (nincs)
 
   Mezők:
