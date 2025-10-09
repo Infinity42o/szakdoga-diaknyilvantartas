@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Gép: 127.0.0.1
--- Létrehozás ideje: 2025. Sze 29. 11:08
+-- Létrehozás ideje: 2025. Okt 09. 12:38
 -- Kiszolgáló verziója: 10.4.32-MariaDB
 -- PHP verzió: 8.2.12
 
@@ -192,6 +192,44 @@ CREATE TABLE `v_hallgato_kredit` (
 -- --------------------------------------------------------
 
 --
+-- A nézet helyettes szerkezete `v_kurzus_egyszeru`
+-- (Lásd alább az aktuális nézetet)
+--
+CREATE TABLE `v_kurzus_egyszeru` (
+`id` int(10) unsigned
+,`tantargy_id` int(10) unsigned
+,`tanar_id` int(10) unsigned
+,`felev` varchar(16)
+,`tipus` enum('eloadas','gyakorlat','labor')
+,`kapacitas` smallint(5) unsigned
+,`terem` varchar(32)
+);
+
+-- --------------------------------------------------------
+
+--
+-- A nézet helyettes szerkezete `v_kurzus_reszletes`
+-- (Lásd alább az aktuális nézetet)
+--
+CREATE TABLE `v_kurzus_reszletes` (
+`id` int(10) unsigned
+,`felev` varchar(16)
+,`tipus` enum('eloadas','gyakorlat','labor')
+,`kapacitas` smallint(5) unsigned
+,`terem` varchar(32)
+,`tantargy_id` int(10) unsigned
+,`tantargy_kod` varchar(16)
+,`tantargy_nev` varchar(160)
+,`tanar_id` int(10) unsigned
+,`tanar_nev` varchar(120)
+,`tanszek` varchar(120)
+,`beiratkozok` bigint(21)
+,`ertekelt_beiratkozasok` decimal(23,0)
+);
+
+-- --------------------------------------------------------
+
+--
 -- A nézet helyettes szerkezete `v_szak_hallgatoszam`
 -- (Lásd alább az aktuális nézetet)
 --
@@ -221,6 +259,24 @@ CREATE TABLE `v_tantargy_atlag` (
 DROP TABLE IF EXISTS `v_hallgato_kredit`;
 
 CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_hallgato_kredit`  AS SELECT `h`.`id` AS `hallgato_id`, `h`.`nev` AS `nev`, sum(case when `b`.`jegy` is not null and `b`.`jegy` >= 2 then `tt`.`kredit` else 0 end) AS `teljesitett_kredit` FROM (((`hallgato` `h` left join `beiratkozas` `b` on(`b`.`hallgato_id` = `h`.`id`)) left join `kurzus` `k` on(`k`.`id` = `b`.`kurzus_id`)) left join `tantargy` `tt` on(`tt`.`id` = `k`.`tantargy_id`)) GROUP BY `h`.`id`, `h`.`nev` ;
+
+-- --------------------------------------------------------
+
+--
+-- Nézet szerkezete `v_kurzus_egyszeru`
+--
+DROP TABLE IF EXISTS `v_kurzus_egyszeru`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_kurzus_egyszeru`  AS SELECT `k`.`id` AS `id`, `k`.`tantargy_id` AS `tantargy_id`, `k`.`tanar_id` AS `tanar_id`, `k`.`felev` AS `felev`, `k`.`tipus` AS `tipus`, `k`.`kapacitas` AS `kapacitas`, `k`.`terem` AS `terem` FROM `kurzus` AS `k` ;
+
+-- --------------------------------------------------------
+
+--
+-- Nézet szerkezete `v_kurzus_reszletes`
+--
+DROP TABLE IF EXISTS `v_kurzus_reszletes`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `v_kurzus_reszletes`  AS SELECT `k`.`id` AS `id`, `k`.`felev` AS `felev`, `k`.`tipus` AS `tipus`, `k`.`kapacitas` AS `kapacitas`, `k`.`terem` AS `terem`, `t`.`id` AS `tantargy_id`, `t`.`kod` AS `tantargy_kod`, `t`.`nev` AS `tantargy_nev`, `tn`.`id` AS `tanar_id`, `tn`.`nev` AS `tanar_nev`, `tn`.`tanszek` AS `tanszek`, coalesce(`b`.`letszam`,0) AS `beiratkozok`, coalesce(`b`.`ertekelt`,0) AS `ertekelt_beiratkozasok` FROM (((`kurzus` `k` join `tantargy` `t` on(`t`.`id` = `k`.`tantargy_id`)) join `tanar` `tn` on(`tn`.`id` = `k`.`tanar_id`)) left join (select `beiratkozas`.`kurzus_id` AS `kurzus_id`,count(0) AS `letszam`,sum(`beiratkozas`.`jegy` is not null) AS `ertekelt` from `beiratkozas` group by `beiratkozas`.`kurzus_id`) `b` on(`b`.`kurzus_id` = `k`.`id`)) ;
 
 -- --------------------------------------------------------
 
