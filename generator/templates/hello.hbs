@@ -1,0 +1,12 @@
+﻿Táblák száma: {{tables.length}}
+
+{{#each tables}}
+- {{name}} ({{columns.length}} mező)
+  PK: {{#if primaryKey}}{{primaryKey}}{{else}}(nincs){{/if}}
+  FK-k:
+  {{#if foreignKeys.length}}
+  {{#each foreignKeys}}  - {{this.column}} → {{this.references.table}}({{this.references.column}})
+  {{/each}}
+  {{else}}  (nincs)
+  {{/if}}
+{{/each}}
