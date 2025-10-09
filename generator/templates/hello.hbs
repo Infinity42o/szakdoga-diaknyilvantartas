@@ -12,4 +12,10 @@ Táblák száma: {{tables.length}}
   {{else}}
     (nincs)
   {{/if}}
+
+  Mezők:
+  {{#each columns}}
+    - {{name}} : {{type}}{{#if enumValues}} ENUM{{/if}}{{#if default}} (DEFAULT={{default}}){{/if}}{{#unless allowNull}} NOT NULL{{/unless}}
+      {{#if enumValues}}    enum: [{{#each enumValues}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}]{{/if}}
+  {{/each}}
 {{/each}}

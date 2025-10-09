@@ -10,7 +10,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "kurzus_id",
@@ -18,7 +19,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "felvet_datum",
@@ -26,7 +28,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": "current_timestamp()"
+          "default": "current_timestamp()",
+          "enumValues": null
         },
         {
           "name": "jegy",
@@ -34,7 +37,8 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "NULL"
+          "default": "NULL",
+          "enumValues": null
         }
       ],
       "primaryKey": [
@@ -67,7 +71,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "neptun",
@@ -75,7 +80,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "nev",
@@ -83,7 +89,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "nem",
@@ -91,7 +98,12 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "NULL"
+          "default": "NULL",
+          "enumValues": [
+            "no",
+            "ferfi",
+            "egyeb"
+          ]
         },
         {
           "name": "szak",
@@ -99,7 +111,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "evfolyam",
@@ -107,7 +120,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "szuldatum",
@@ -115,7 +129,8 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "NULL"
+          "default": "NULL",
+          "enumValues": null
         },
         {
           "name": "email",
@@ -123,15 +138,8 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "NULL"
-        },
-        {
-          "name": "INSERT",
-          "type": "INTO",
-          "allowNull": true,
-          "autoIncrement": false,
-          "unique": false,
-          "default": null
+          "default": "NULL",
+          "enumValues": null
         }
       ],
       "primaryKey": [
@@ -148,7 +156,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "tantargy_id",
@@ -156,7 +165,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "tanar_id",
@@ -164,7 +174,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "felev",
@@ -172,7 +183,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "tipus",
@@ -180,7 +192,12 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": "eloadas"
+          "default": "eloadas",
+          "enumValues": [
+            "eloadas",
+            "gyakorlat",
+            "labor"
+          ]
         },
         {
           "name": "kapacitas",
@@ -188,7 +205,8 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "100"
+          "default": "100",
+          "enumValues": null
         },
         {
           "name": "terem",
@@ -196,15 +214,8 @@
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
-          "default": "NULL"
-        },
-        {
-          "name": "INSERT",
-          "type": "INTO",
-          "allowNull": true,
-          "autoIncrement": false,
-          "unique": false,
-          "default": null
+          "default": "NULL",
+          "enumValues": null
         }
       ],
       "primaryKey": [
@@ -236,7 +247,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "nev",
@@ -244,7 +256,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "tanszek",
@@ -252,7 +265,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "email",
@@ -260,15 +274,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
-        },
-        {
-          "name": "INSERT",
-          "type": "INTO",
-          "allowNull": true,
-          "autoIncrement": false,
-          "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         }
       ],
       "primaryKey": [
@@ -285,7 +292,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "kod",
@@ -293,7 +301,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "nev",
@@ -301,7 +310,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "kredit",
@@ -309,7 +319,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": null
+          "default": null,
+          "enumValues": null
         },
         {
           "name": "aktiv",
@@ -317,15 +328,8 @@
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
-          "default": "1"
-        },
-        {
-          "name": "INSERT",
-          "type": "INTO",
-          "allowNull": true,
-          "autoIncrement": false,
-          "unique": false,
-          "default": null
+          "default": "1",
+          "enumValues": null
         }
       ],
       "primaryKey": [

@@ -26,6 +26,23 @@ function parseCreateTableBlocks(sql) {
   return blocks;
 }
 
+// enum értékek kigyűjtése: ENUM('a','b',"c") -> ["a","b","c"]
+function extractEnumValues(line) {
+  const m = line.match(/\bENUM\s*\(([\s\S]*?)\)/i);
+  if (!m) return null;
+  const inside = m[1];
+  const vals = [];
+  const re = /'((?:\\'|[^'])*)'|"((?:\\"|[^"])*)"/g;
+  let mm;
+  while ((mm = re.exec(inside))) {
+    const v = (mm[1] ?? mm[2])
+      .replace(/\\'/g, "'")
+      .replace(/\\"/g, '"');
+    vals.push(v);
+  }
+  return vals.length ? vals : null;
+}
+
 function parseColumnsAndConstraintsFromCreate(body) {
   const lines = body
     .split(/\n/)
@@ -38,6 +55,11 @@ function parseColumnsAndConstraintsFromCreate(body) {
 
   for (let raw of lines) {
     const line = raw.replace(/,+\s*$/, "");
+    // táblaszintű opciók / egyéb zaj kiszűrése
+if (/^(INSERT|ENGINE|CHARSET|COLLATE|ROW_FORMAT|COMMENT|PARTITION|KEY|UNIQUE|INDEX)\b/i.test(line)) {
+  continue;
+}
+
 
     // Tábla-szintű PRIMARY KEY (...)
     if (/^PRIMARY\s+KEY/i.test(line)) {
@@ -56,8 +78,7 @@ function parseColumnsAndConstraintsFromCreate(body) {
       const colM = line.match(/FOREIGN\s+KEY\s*\((`?\w+`?)\)/i);
       const refM = line.match(/REFERENCES\s+`?(\w+)`?\s*\(`?(\w+)`?\)/i);
       if (colM && refM) {
-        const cols = colM[1].replace(/[`]/g, "").split(/\s*,\s*/); // összetett FK oszlopokra is
-        // egyszerűsítve: csak az első oszlopot jegyezzük most (POC)
+        const cols = colM[1].replace(/[`]/g, "").split(/\s*,\s*/);
         foreignKeys.push({
           column: cols[0].replace(/[`]/g, ""),
           references: { table: refM[1], column: refM[2] },
@@ -78,10 +99,13 @@ function parseColumnsAndConstraintsFromCreate(body) {
       const defM = line.match(/\bDEFAULT\s+([^,\s]+)/i);
       if (defM) def = defM[1].replace(/^['"]|['"]$/g, "");
 
+      // ENUM értékek
+      const enumValues = extractEnumValues(line);
+
       // Inline PRIMARY KEY (ritkább MySQL-ben, de kezeljük)
       if (/\bPRIMARY\s+KEY\b/i.test(line)) primaryKey.push(name);
 
-      columns.push({ name, type, allowNull, autoIncrement, unique, default: def });
+      columns.push({ name, type, allowNull, autoIncrement, unique, default: def, enumValues });
       continue;
     }
   }
@@ -147,7 +171,6 @@ function parseSchema(sqlRaw) {
     if (!t) continue;
     const { pk, fks } = extractConstraintsFromAlter(body);
     if (pk.length) {
-      // ha CREATE-ben nem volt PK, vagy össze kell fésülni
       const set = new Set([...(t.primaryKey || []), ...pk]);
       t.primaryKey = Array.from(set);
     }
@@ -156,20 +179,15 @@ function parseSchema(sqlRaw) {
     }
   }
 
-// Nézetek kiszűrése – kezeljük az OR REPLACE / ALGORITHM / DEFINER / SQL SECURITY mintákat is
-const viewRegex =
-  /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
-
-let vm;
-while ((vm = viewRegex.exec(sql))) {
-  tableMap.delete(vm[1]);
-}
-
-// (opcionális extra biztosíték: minden v_*-t kidobunk)
-for (const name of Array.from(tableMap.keys())) {
-   if (name.startsWith("v_")) tableMap.delete(name);
- }
-
+  // Nézetek kiszűrése – OR REPLACE / ALGORITHM / DEFINER / SQL SECURITY variánsokkal
+  const viewRegex =
+    /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
+  let vm;
+  while ((vm = viewRegex.exec(sql))) {
+    tableMap.delete(vm[1]);
+  }
+  // (opcionális extra) v_-val kezdődő neveket is dobd:
+  // for (const name of Array.from(tableMap.keys())) if (name.startsWith("v_")) tableMap.delete(name);
 
   return {
     database,
