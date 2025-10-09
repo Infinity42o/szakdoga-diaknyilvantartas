@@ -52,3 +52,19 @@ futtasd egyszer az alábbi parancsot:
 ```sql
 ALTER TABLE beiratkozas
   ADD CONSTRAINT chk_jegy CHECK (jegy IS NULL OR (jegy BETWEEN 1 AND 5));
+Add-Content .\README.md @'
+---
+
+## Állapot – v0.2 (Pont 1–3 kész)
+
+**Kész:**
+- (1) Környezet + mappastruktúra
+- (2) MySQL séma + mintaadatok (`db/diaknyilvantartas.sql`)
+- (3) Generátor alapok: SQL→JSON parser (PK/FK, UNIQUE, INDEX, ENUM, VIEW-k kizárva) + Handlebars próbagenerálás
+
+**Hogyan futtasd a generátort:**
+```bash
+cd generator
+npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
+# Eredmény: out/schema.json + out/samples/HELLO.txt
+

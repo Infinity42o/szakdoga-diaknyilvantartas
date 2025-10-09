@@ -13,6 +13,24 @@ Táblák száma: {{tables.length}}
     (nincs)
   {{/if}}
 
+  UNIQUE kulcsok:
+  {{#if uniqueKeys.length}}
+  {{#each uniqueKeys}}
+    - {{#if name}}{{name}}{{else}}(névtelen){{/if}}: [{{#each columns}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}]
+  {{/each}}
+  {{else}}
+    (nincs)
+  {{/if}}
+
+  Indexek:
+  {{#if indexes.length}}
+  {{#each indexes}}
+    - {{#if name}}{{name}}{{else}}(névtelen){{/if}}: [{{#each columns}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}]
+  {{/each}}
+  {{else}}
+    (nincs)
+  {{/if}}
+
   Mezők:
   {{#each columns}}
     - {{name}} : {{type}}{{#if enumValues}} ENUM{{/if}}{{#if default}} (DEFAULT={{default}}){{/if}}{{#unless allowNull}} NOT NULL{{/unless}}
