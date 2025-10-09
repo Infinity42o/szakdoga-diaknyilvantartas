@@ -41,7 +41,7 @@ if (!schema.database) {
   ensureDir(samplesDir);
   fs.writeFileSync(path.join(samplesDir, "HELLO.txt"), outText, "utf8");
 
-  console.log("✅ Kész: out/schema.json és out/samples/HELLO.txt létrehozva.");
+  console.log("Kész: out/schema.json és out/samples/HELLO.txt létrehozva.");
 }
 
 main();
