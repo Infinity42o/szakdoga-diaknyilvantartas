@@ -17,7 +17,7 @@ function main() {
   const input = arg("--input") || "../db/diaknyilvantartas.sql";
   const outDir = arg("--out") || "./out";
 
-  const sql = fs.readFileSync(path.resolve(__dirname, input), "utf8");
+  const sql = fs.readFileSync(path.resolve(process.cwd(), input), "utf8");
   const schema = parseSchema(sql);
 
   // schema.json kiírása
