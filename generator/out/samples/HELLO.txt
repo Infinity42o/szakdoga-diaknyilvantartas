@@ -1,0 +1,91 @@
+﻿Adatbázis: diaknyilvantartas
+Táblák száma: 5
+
+- beiratkozas (4 mező)
+  PK: hallgato_id,kurzus_id
+  FK-k:
+    - hallgato_id → hallgato(id)
+    - kurzus_id → kurzus(id)
+
+  Mezők:
+    - hallgato_id : int(10) UNSIGNED NOT NULL
+      
+    - kurzus_id : int(10) UNSIGNED NOT NULL
+      
+    - felvet_datum : datetime (DEFAULT=current_timestamp()) NOT NULL
+      
+    - jegy : tinyint(3) UNSIGNED (DEFAULT=NULL)
+      
+- hallgato (8 mező)
+  PK: id
+  FK-k:
+    (nincs)
+
+  Mezők:
+    - id : int(10) UNSIGNED NOT NULL
+      
+    - neptun : char(6) NOT NULL
+      
+    - nev : varchar(120) NOT NULL
+      
+    - nem : enum(&#x27;no&#x27;,&#x27;ferfi&#x27;,&#x27;egyeb&#x27;) ENUM (DEFAULT=NULL)
+          enum: [no, ferfi, egyeb]
+    - szak : varchar(80) NOT NULL
+      
+    - evfolyam : tinyint(3) UNSIGNED NOT NULL
+      
+    - szuldatum : date (DEFAULT=NULL)
+      
+    - email : varchar(120) (DEFAULT=NULL)
+      
+- kurzus (7 mező)
+  PK: id
+  FK-k:
+    - tanar_id → tanar(id)
+    - tantargy_id → tantargy(id)
+
+  Mezők:
+    - id : int(10) UNSIGNED NOT NULL
+      
+    - tantargy_id : int(10) UNSIGNED NOT NULL
+      
+    - tanar_id : int(10) UNSIGNED NOT NULL
+      
+    - felev : varchar(16) NOT NULL
+      
+    - tipus : enum(&#x27;eloadas&#x27;,&#x27;gyakorlat&#x27;,&#x27;labor&#x27;) ENUM (DEFAULT=eloadas) NOT NULL
+          enum: [eloadas, gyakorlat, labor]
+    - kapacitas : smallint(5) UNSIGNED (DEFAULT=100)
+      
+    - terem : varchar(32) (DEFAULT=NULL)
+      
+- tanar (4 mező)
+  PK: id
+  FK-k:
+    (nincs)
+
+  Mezők:
+    - id : int(10) UNSIGNED NOT NULL
+      
+    - nev : varchar(120) NOT NULL
+      
+    - tanszek : varchar(120) NOT NULL
+      
+    - email : varchar(120) NOT NULL
+      
+- tantargy (5 mező)
+  PK: id
+  FK-k:
+    (nincs)
+
+  Mezők:
+    - id : int(10) UNSIGNED NOT NULL
+      
+    - kod : varchar(16) NOT NULL
+      
+    - nev : varchar(160) NOT NULL
+      
+    - kredit : tinyint(3) UNSIGNED NOT NULL
+      
+    - aktiv : tinyint(1) (DEFAULT=1) NOT NULL
+      
