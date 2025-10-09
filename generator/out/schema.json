@@ -1,0 +1,337 @@
+{
+  "database": "diaknyilvantartas",
+  "tables": [
+    {
+      "name": "beiratkozas",
+      "columns": [
+        {
+          "name": "hallgato_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "kurzus_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "felvet_datum",
+          "type": "datetime",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "current_timestamp()"
+        },
+        {
+          "name": "jegy",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL"
+        }
+      ],
+      "primaryKey": [
+        "hallgato_id",
+        "kurzus_id"
+      ],
+      "foreignKeys": [
+        {
+          "column": "hallgato_id",
+          "references": {
+            "table": "hallgato",
+            "column": "id"
+          }
+        },
+        {
+          "column": "kurzus_id",
+          "references": {
+            "table": "kurzus",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "hallgato",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "neptun",
+          "type": "char(6)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "nem",
+          "type": "enum('no','ferfi','egyeb')",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL"
+        },
+        {
+          "name": "szak",
+          "type": "varchar(80)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "evfolyam",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "szuldatum",
+          "type": "date",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL"
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL"
+        },
+        {
+          "name": "INSERT",
+          "type": "INTO",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "kurzus",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "tantargy_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "tanar_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "felev",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "tipus",
+          "type": "enum('eloadas','gyakorlat','labor')",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "eloadas"
+        },
+        {
+          "name": "kapacitas",
+          "type": "smallint(5) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "100"
+        },
+        {
+          "name": "terem",
+          "type": "varchar(32)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL"
+        },
+        {
+          "name": "INSERT",
+          "type": "INTO",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "column": "tanar_id",
+          "references": {
+            "table": "tanar",
+            "column": "id"
+          }
+        },
+        {
+          "column": "tantargy_id",
+          "references": {
+            "table": "tantargy",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "tanar",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "tanszek",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "INSERT",
+          "type": "INTO",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": []
+    },
+    {
+      "name": "tantargy",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "kod",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(160)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "kredit",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        },
+        {
+          "name": "aktiv",
+          "type": "tinyint(1)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "1"
+        },
+        {
+          "name": "INSERT",
+          "type": "INTO",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": []
+    }
+  ]
+}

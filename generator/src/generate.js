@@ -19,6 +19,13 @@ function main() {
 
   const sql = fs.readFileSync(path.resolve(process.cwd(), input), "utf8");
   const schema = parseSchema(sql);
+  // Ha a dumpban nincs USE/CREATE DATABASE, következtessünk a fájlnévből
+if (!schema.database) {
+  const abs = path.resolve(process.cwd(), input);
+  const guess = path.basename(abs).replace(/\.sql$/i, "");
+  schema.database = guess; // pl. diaknyilvantartas
+}
+
 
   // schema.json kiírása
   ensureDir(outDir);

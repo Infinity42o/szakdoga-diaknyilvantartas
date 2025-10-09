@@ -1,0 +1,25 @@
+﻿Adatbázis: diaknyilvantartas
+Táblák száma: 5
+
+- beiratkozas (4 mező)
+  PK: hallgato_id,kurzus_id
+  FK-k:
+    - hallgato_id → hallgato(id)
+    - kurzus_id → kurzus(id)
+- hallgato (9 mező)
+  PK: id
+  FK-k:
+    (nincs)
+- kurzus (8 mező)
+  PK: id
+  FK-k:
+    - tanar_id → tanar(id)
+    - tantargy_id → tantargy(id)
+- tanar (5 mező)
+  PK: id
+  FK-k:
+    (nincs)
+- tantargy (6 mező)
+  PK: id
+  FK-k:
+    (nincs)

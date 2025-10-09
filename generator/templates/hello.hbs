@@ -1,12 +1,15 @@
-﻿Táblák száma: {{tables.length}}
+﻿Adatbázis: {{#if database}}{{database}}{{else}}(ismeretlen){{/if}}
+Táblák száma: {{tables.length}}
 
 {{#each tables}}
 - {{name}} ({{columns.length}} mező)
   PK: {{#if primaryKey}}{{primaryKey}}{{else}}(nincs){{/if}}
   FK-k:
   {{#if foreignKeys.length}}
-  {{#each foreignKeys}}  - {{this.column}} → {{this.references.table}}({{this.references.column}})
+  {{#each foreignKeys}}
+    - {{this.column}} → {{this.references.table}}({{this.references.column}})
   {{/each}}
-  {{else}}  (nincs)
+  {{else}}
+    (nincs)
   {{/if}}
 {{/each}}
