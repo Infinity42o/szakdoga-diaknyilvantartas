@@ -127,85 +127,132 @@ function parseColumnsAndConstraintsFromCreate(body) {
 
   const columns = [];
   const primaryKey = [];
-  const foreignKeys = [];
+  const foreignKeys = []; // { columns:[], references:{ table, columns:[] } }
+  const uniqueKeys = [];  // { name: string|null, columns:[] }
+  const indexes   = [];   // { name: string|null, columns:[], unique: boolean }
 
   for (let raw of lines) {
     const line = raw.replace(/,+\s*$/, "");
 
-    // TÄ‚Ë‡bla-szintÄąÂ± PRIMARY KEY
+    // PRIMARY KEY (`a`,`b`)
     if (/^PRIMARY\s+KEY\b/i.test(line)) {
-      const cols = line.match(/\(([^)]+)\)/);
-      if (cols) {
-        cols[1]
-          .split(",")
-          .map((s) => s.replace(/[`'"]/g, "").trim())
-          .forEach((c) => primaryKey.push(c));
+      const m = line.match(/\(([^)]+)\)/);
+      if (m) {
+        m[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()).forEach(c => primaryKey.push(c));
       }
       continue;
     }
 
-    // TÄ‚Ë‡bla-szintÄąÂ± FOREIGN KEY
+    // UNIQUE KEY / UNIQUE INDEX
+    if (/^(UNIQUE\s+KEY|UNIQUE\s+INDEX)\b/i.test(line)) {
+      const nameM = line.match(/^(?:UNIQUE\s+(?:KEY|INDEX))\s+`?(\w+)`?/i);
+      const colsM = line.match(/\(([^)]+)\)/);
+      uniqueKeys.push({
+        name: nameM ? nameM[1] : null,
+        columns: colsM ? colsM[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()) : []
+      });
+      continue;
+    }
+
+    // sima KEY / INDEX
+    if (/^(KEY|INDEX)\b/i.test(line)) {
+      const nameM = line.match(/^(?:KEY|INDEX)\s+`?(\w+)`?/i);
+      const colsM = line.match(/\(([^)]+)\)/);
+      indexes.push({
+        name: nameM ? nameM[1] : null,
+        columns: colsM ? colsM[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()) : [],
+        unique: false
+      });
+      continue;
+    }
+
+    // FOREIGN KEY (...) REFERENCES tab (...)
     if ((/^CONSTRAINT\b/i.test(line) || /^FOREIGN\s+KEY\b/i.test(line)) && /FOREIGN\s+KEY/i.test(line)) {
-      const colM = line.match(/FOREIGN\s+KEY\s*\(([^)]+)\)/i);
-      const refM = line.match(/REFERENCES\s+`?(\w+)`?\s*\(`?(\w+)`?\)/i);
-      if (colM && refM) {
-        const cols = colM[1].split(",").map(s => s.replace(/[`'"]/g,"").trim());
+      const colsM = line.match(/FOREIGN\s+KEY\s*\(([^)]+)\)/i);
+      const refM  = line.match(/REFERENCES\s+`?(\w+)`?\s*\(([^)]+)\)/i);
+      if (colsM && refM) {
+        const cols = colsM[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()).filter(Boolean);
+        const refCols = refM[2].split(",").map(s => s.replace(/[`'"]/g,"").trim()).filter(Boolean);
         foreignKeys.push({
-          column: cols[0],
-          references: { table: refM[1], column: refM[2] },
+          columns: cols,
+          references: { table: refM[1], columns: refCols }
         });
       }
       continue;
     }
 
-    // Oszlop definÄ‚Â­ciÄ‚Ĺ‚ felismerÄ‚Â©se: <name> <type...> [constraint-ek...]
-    const head = line.match(/^`?(\w+)`?\s+(.+)$/);
-    if (head) {
-      const name = head[1];
-      const tail = head[2];
+  // Oszlop definíció
+  const head = line.match(/^`?(\w+)`?\s+(.+)$/);
+  if (head) {
+  const name = head[1];
+  const tail = head[2];
 
-      // ENUM Ä‚Â©rtÄ‚Â©kek
-      let enumValues = null;
-      const enumM = tail.match(/\bENUM\s*\(([^)]+)\)/i);
-      if (enumM) {
-        enumValues = enumM[1]
-          .split(",")
-          .map(s => s.trim().replace(/^['"]|['"]$/g,""));
-      }
+  // ENUM értékek
+  let enumValues = null;
+  const enumM = tail.match(/\bENUM\s*\(([^)]+)\)/i);
+  if (enumM) {
+    enumValues = enumM[1].split(",").map(s => s.trim().replace(/^['"]|['"]$/g,""));
+  }
 
-      // TÄ‚Â­pus: mindent a DEFAULT/NOT NULL/NULL/UNIQUE/AUTO_INCREMENT/COMMENT elÄąâ€tt
-      const typeOnly = (tail
-        .split(/\bNOT\s+NULL\b|\bNULL\b|\bDEFAULT\b|\bUNIQUE\b|\bAUTO_INCREMENT\b|\bCOMMENT\b/i)[0] || "")
-        .trim();
+  // Típus: a kulcsszavak előtti rész
+  const typeOnly = (tail
+    .split(/\bNOT\s+NULL\b|\bNULL\b|\bDEFAULT\b|\bUNIQUE\b|\bAUTO_INCREMENT\b|\bCOMMENT\b/i)[0] || "")
+    .trim();
 
-      const allowNull = !/\bNOT\s+NULL\b/i.test(tail);
-      const autoIncrement = /\bAUTO_INCREMENT\b/i.test(tail);
-      const unique = /\bUNIQUE\b/i.test(tail);
+  const allowNull     = !/\bNOT\s+NULL\b/i.test(tail);
+  const autoIncrement = /\bAUTO_INCREMENT\b/i.test(tail);
+  const unique        = /\bUNIQUE\b/i.test(tail);
 
-      let def = null;
-      const defM = tail.match(/\bDEFAULT\s+((?:'[^']*')|(?:"[^"]*")|(?:[^,\s]+))/i);
-      if (defM) def = defM[1].replace(/^['"]|['"]$/g, "");
+  // DEFAULT
+  let def = null;
+  const defM = tail.match(/\bDEFAULT\s+((?:'[^']*')|(?:"[^"]*")|(?:[^\s,]+))/i);
+  if (defM) def = defM[1].replace(/^['"]|['"]$/g, "");
 
-      // Inline PRIMARY KEY
-      if (/\bPRIMARY\s+KEY\b/i.test(tail)) primaryKey.push(name);
+  // ON UPDATE
+  let onUpdate = null;
+  const updM = tail.match(/\bON\s+UPDATE\s+((?:'[^']*')|(?:"[^"]*")|(?:[^\s,]+))/i);
+  if (updM) onUpdate = updM[1].replace(/^['"]|['"]$/g, "");
 
-      columns.push({
-        name,
-        type: typeOnly.replace(/\s+/g," ").trim(),
-        allowNull,
-        autoIncrement,
-        unique,
-        default: def,
-        enumValues
+  // COMMENT  ← EZ AZ ÚJ RÉSZ
+  // kezeli: COMMENT 'txt' | COMMENT "txt" | COMMENT='txt'
+  let comment = null;
+  const comM = tail.match(/\bCOMMENT\s*(?:=|\s)\s*(?:'([^']*)'|"([^"]*)")/i);
+  if (comM) comment = (comM[1] ?? comM[2]);
+
+  // inline PRIMARY KEY
+  if (/\bPRIMARY\s+KEY\b/i.test(tail)) primaryKey.push(name);
+
+  columns.push({
+    name,
+    type: typeOnly.replace(/\s+/g," ").trim(),
+    allowNull,
+    autoIncrement,
+    unique,
+    default: def,
+    onUpdate,
+    enumValues,
+    comment,            // ← és itt betesszük az objektumba
+  });
+  continue;
+}
+
+
+
+    // Rövid UNIQUE (név nélkül): UNIQUE (a,b)
+    if (/^UNIQUE\s*\(/i.test(line)) {
+      const colsM = line.match(/\(([^)]+)\)/);
+      uniqueKeys.push({
+        name: null,
+        columns: colsM ? colsM[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()) : []
       });
       continue;
     }
   }
 
-  return { columns, primaryKey, foreignKeys };
+  return { columns, primaryKey, foreignKeys, uniqueKeys, indexes };
 }
 
-// ALTER TABLE blokkok
+// ALTER TABLE blokkok (több utasítást is felvesz, amíg ';'-ig tart)
 function parseAlterTableBlocks(sql) {
   const blocks = [];
   const re = /ALTER\s+TABLE\s+`?(\w+)`?\s+([\s\S]*?)\s*;/gim;
@@ -226,22 +273,16 @@ function extractConstraintsFromAlter(body) {
   const pkRe = /ADD\s+PRIMARY\s+KEY\s*\(([^)]+)\)/gim;
   let pm;
   while ((pm = pkRe.exec(body))) {
-    pm[1]
-      .split(",")
-      .map((s) => s.replace(/[`'"]/g, "").trim())
-      .forEach((c) => pk.push(c));
+    pm[1].split(",").map(s => s.replace(/[`'"]/g,"").trim()).forEach(c => pk.push(c));
   }
 
-  // ADD CONSTRAINT ... FOREIGN KEY (`col`) REFERENCES `tab`(`id`)
-  const fkRe = /ADD\s+CONSTRAINT\s+`?\w+`?\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+`?(\w+)`?\s*\(`?(\w+)`?\)/gim;
+  // ADD CONSTRAINT ... FOREIGN KEY (`a`,`b`) REFERENCES `tab`(`x`,`y`)
+  const fkRe = /ADD\s+CONSTRAINT\s+`?\w+`?\s+FOREIGN\s+KEY\s*\(([^)]+)\)\s+REFERENCES\s+`?(\w+)`?\s*\(([^)]+)\)/gim;
   let fm;
   while ((fm = fkRe.exec(body))) {
-    const cols = fm[1].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
-  fks.push({
-  columns: cols,
-  references: { table: fm[2], column: fm[3] }
-});
-
+    const cols    = fm[1].split(",").map(s => s.replace(/[`'"]/g,"").trim());
+    const refCols = fm[3].split(",").map(s => s.replace(/[`'"]/g,"").trim());
+    fks.push({ columns: cols, references: { table: fm[2], columns: refCols } });
   }
 
   // ADD UNIQUE KEY `name` (`a`,`b`)
@@ -249,7 +290,7 @@ function extractConstraintsFromAlter(body) {
   let um;
   while ((um = ukRe.exec(body))) {
     const name = um[1];
-    const cols = um[2].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
+    const cols = um[2].split(",").map(s => s.replace(/[`'"]/g,"").trim());
     uniqueKeys.push({ name, columns: cols });
   }
 
@@ -258,12 +299,13 @@ function extractConstraintsFromAlter(body) {
   let im;
   while ((im = idxRe.exec(body))) {
     const name = im[1];
-    const cols = im[2].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
+    const cols = im[2].split(",").map(s => s.replace(/[`'"]/g,"").trim());
     indexes.push({ name, columns: cols, unique: false });
   }
 
   return { pk, fks, uniqueKeys, indexes };
 }
+
 
 function parseSchema(sqlRaw) {
   const sql = stripComments(sqlRaw);
