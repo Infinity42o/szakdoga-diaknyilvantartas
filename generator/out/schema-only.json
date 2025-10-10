@@ -1,5 +1,5 @@
 {
-  "database": null,
+  "database": "diaknyilvantartas",
   "tables": [
     {
       "name": "beiratkozas",
@@ -24,7 +24,7 @@
         },
         {
           "name": "felvet_datum",
-          "type": "datetime NOT",
+          "type": "datetime",
           "allowNull": false,
           "autoIncrement": false,
           "unique": false,
@@ -65,7 +65,6 @@
           }
         }
       ],
-      "uniqueKeys": [],
       "indexes": [
         {
           "name": "ix_beiratkozas_kurzus",
@@ -139,7 +138,7 @@
         },
         {
           "name": "szuldatum",
-          "type": "date DEFAULT",
+          "type": "date",
           "allowNull": true,
           "autoIncrement": false,
           "unique": false,
@@ -173,8 +172,7 @@
             "email"
           ]
         }
-      ],
-      "indexes": []
+      ]
     },
     {
       "name": "kurzus",
@@ -270,7 +268,6 @@
           }
         }
       ],
-      "uniqueKeys": [],
       "indexes": [
         {
           "name": "ix_kurzus_tantargy",
@@ -339,8 +336,7 @@
             "email"
           ]
         }
-      ],
-      "indexes": []
+      ]
     },
     {
       "name": "tantargy",
@@ -402,8 +398,7 @@
             "kod"
           ]
         }
-      ],
-      "indexes": []
+      ]
     }
   ]
 }

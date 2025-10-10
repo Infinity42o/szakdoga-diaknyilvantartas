@@ -1,11 +1,11 @@
-﻿Adatbázis: diaknyilvantartas
+﻿Adatbázis: (ismeretlen)
 Táblák száma: 5
 
 - beiratkozas (4 mező)
   PK: hallgato_id,kurzus_id
   FK-k:
-    - hallgato_id → hallgato(id)
-    - kurzus_id → kurzus(id)
+    -  → hallgato(id)
+    -  → kurzus(id)
 
   UNIQUE kulcsok:
     (nincs)
@@ -18,7 +18,7 @@ Táblák száma: 5
       
     - kurzus_id : int(10) UNSIGNED NOT NULL
       
-    - felvet_datum : datetime (DEFAULT=current_timestamp()) NOT NULL
+    - felvet_datum : datetime NOT (DEFAULT=current_timestamp()) NOT NULL
       
     - jegy : tinyint(3) UNSIGNED (DEFAULT=NULL)
       
@@ -47,15 +47,15 @@ Táblák száma: 5
       
     - evfolyam : tinyint(3) UNSIGNED NOT NULL
       
-    - szuldatum : date (DEFAULT=NULL)
+    - szuldatum : date DEFAULT (DEFAULT=NULL)
       
     - email : varchar(120) (DEFAULT=NULL)
       
 - kurzus (7 mező)
   PK: id
   FK-k:
-    - tanar_id → tanar(id)
-    - tantargy_id → tantargy(id)
+    -  → tanar(id)
+    -  → tantargy(id)
 
   UNIQUE kulcsok:
     (nincs)
