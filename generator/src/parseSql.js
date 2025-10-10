@@ -1,30 +1,114 @@
 ﻿const fs = require("fs");
 
 function stripComments(sql) {
-  return sql
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/--.*$/gm, "")
-    .trim();
+  let out = '';
+  let i = 0, n = sql.length;
+  let inSingle = false, inDouble = false, inBacktick = false;
+
+  while (i < n) {
+    const c = sql[i];
+    const c2 = sql[i + 1];
+
+    // kilépések/átmenetek a string módokból
+    if (!inDouble && !inBacktick && c === "'" && !inSingle) { inSingle = true; out += c; i++; continue; }
+    if (inSingle) { out += c; if (c === "'" && sql[i - 1] !== "\\") inSingle = false; i++; continue; }
+
+    if (!inSingle && !inBacktick && c === '"' && !inDouble) { inDouble = true; out += c; i++; continue; }
+    if (inDouble) { out += c; if (c === '"' && sql[i - 1] !== "\\") inDouble = false; i++; continue; }
+
+    if (!inSingle && !inDouble && c === '`' && !inBacktick) { inBacktick = true; out += c; i++; continue; }
+    if (inBacktick) { out += c; if (c === '`') inBacktick = false; i++; continue; }
+
+    // csak ha NEM vagyunk stringben/backtickben: kommentek eltávolítása
+    if (!inSingle && !inDouble && !inBacktick) {
+      // -- ... \n
+      if (c === '-' && c2 === '-') {
+        // phpMyAdmin dumpban a -- után szóköz is lehet; egészen sorvégéig dobd
+        while (i < n && sql[i] !== '\n') i++;
+        continue;
+      }
+      // /* ... */
+      if (c === '/' && c2 === '*') {
+        i += 2;
+        while (i < n && !(sql[i] === '*' && sql[i + 1] === '/')) i++;
+        i += 2;
+        continue;
+      }
+    }
+
+    out += c;
+    i++;
+  }
+
+  return out.trim();
 }
 
+
 function parseDatabaseName(sql) {
-  const m1 = sql.match(/USE\s+`?(\w+)`?\s*;/i);
-  if (m1) return m1[1];
-  const m2 = sql.match(/CREATE\s+DATABASE\s+`?(\w+)`?/i);
-  if (m2) return m2[1];
+  // USE `db-name`;
+  let m = sql.match(/USE\s+`([^`]+)`\s*;/i);
+  if (m) return m[1];
+  // USE db_name;
+  m = sql.match(/USE\s+([A-Za-z0-9_$-]+)\s*;/i);
+  if (m) return m[1];
+
+  // CREATE DATABASE `db-name`
+  m = sql.match(/CREATE\s+DATABASE\s+`([^`]+)`/i);
+  if (m) return m[1];
+  // CREATE DATABASE db_name
+  m = sql.match(/CREATE\s+DATABASE\s+([A-Za-z0-9_$-]+)/i);
+  if (m) return m[1];
+
   return null;
 }
+
 
 // Csak CREATE TABLE blokkok
 function parseCreateTableBlocks(sql) {
   const blocks = [];
-  const re = /CREATE\s+TABLE\s+`?(\w+)`?\s*\(([\s\S]*?)\)\s*;/gim;
+  const re = /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?`?([^\s`(]+)`?\s*\(/gim;
   let m;
   while ((m = re.exec(sql))) {
-    blocks.push({ table: m[1], body: m[2] });
+    const table = m[1];
+    let i = re.lastIndex; // a nyitó "(" UTÁN vagyunk
+    let depth = 1;
+    let inSingle = false, inDouble = false, inBacktick = false;
+
+    // gyűjtsük ki a záró )-ig (kiegyensúlyozva), stringek figyelésével
+    while (i < sql.length && depth > 0) {
+      const ch = sql[i];
+      const ch2 = sql[i + 1];
+
+      if (!inDouble && !inBacktick && ch === "'" && !inSingle) { inSingle = true; i++; continue; }
+      if (inSingle) { if (ch === "'" && sql[i - 1] !== "\\") inSingle = false; i++; continue; }
+
+      if (!inSingle && !inBacktick && ch === '"' && !inDouble) { inDouble = true; i++; continue; }
+      if (inDouble) { if (ch === '"' && sql[i - 1] !== "\\") inDouble = false; i++; continue; }
+
+      if (!inSingle && !inDouble && ch === '`' && !inBacktick) { inBacktick = true; i++; continue; }
+      if (inBacktick) { if (ch === '`') inBacktick = false; i++; continue; }
+
+      if (!inSingle && !inDouble && !inBacktick) {
+        if (ch === '(') depth++;
+        else if (ch === ')') depth--;
+      }
+      i++;
+    }
+
+    const body = sql.slice(re.lastIndex, i - 1); // a záró ) előtti tartalom
+
+    // most engedjük a záró ) utáni táblabeállításokat a ;-ig
+    let j = i;
+    while (j < sql.length && sql[j] !== ';') j++;
+    // const tableOptions = sql.slice(i, j);  // ha később kéne
+    blocks.push({ table, body: body.trim() });
+
+    // re.lastIndex-et toljuk a pontosvessző UTÁNRA, hogy a következő találatot jól kezdje
+    re.lastIndex = j + 1;
   }
   return blocks;
 }
+
 
 // enum értékek kigyűjtése: ENUM('a','b',"c") -> ["a","b","c"]
 function extractEnumValues(line) {
@@ -110,7 +194,9 @@ function parseColumnsAndConstraintsFromCreate(body) {
     }
 
     // Oszlop definíció
-    const colM = line.match(/^`?(\w+)`?\s+([A-Z]+(?:\([^)]+\))?(?:\s+UNSIGNED)?)/i);
+    const colM = line.match(
+  /^`?(\w+)`?\s+([A-Z]+(?:\s+[A-Z]+)?(?:\([^)]+\))?(?:\s+UNSIGNED)?(?:\s+ZEROFILL)?)/i
+);
     if (colM) {
       const name = colM[1];
       const type = colM[2].replace(/\s+/g, " ").trim();
@@ -165,10 +251,11 @@ function extractConstraintsFromAlter(body) {
   let fm;
   while ((fm = fkRe.exec(body))) {
     const cols = fm[1].split(",").map((s) => s.replace(/[`'"]/g, "").trim());
-    fks.push({
-      column: cols[0], // POC: első oszlop
-      references: { table: fm[2], column: fm[3] },
-    });
+  fks.push({
+  columns: cols,
+  references: { table: fm[2], column: fm[3] }
+});
+
   }
 
   // ADD UNIQUE KEY `name` (`a`,`b`)
@@ -226,8 +313,8 @@ function parseSchema(sqlRaw) {
   }
 
   // Nézetek kiszűrése – több variáns kezelése
-  const viewRegex =
-    /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
+ const viewRegex =
+  /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
   let vm;
   while ((vm = viewRegex.exec(sql))) {
     tableMap.delete(vm[1]);
