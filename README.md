@@ -39,21 +39,13 @@ SELECT * FROM v_hallgato_kredit LIMIT 5;
 
 
 ## Tesztelt verziók
-- **OS:** Windows 11 (22H2/23H2)
+- **OS:** Windows 11 (22H2/23H4)
 - **DB környezet:** XAMPP (MySQL/MariaDB), phpMyAdmin; MySQL Workbench
 - **MySQL/MariaDB:** aktuális XAMPP-alapú MariaDB + MySQL Workbench klienssel tesztelve
 - **Shell:** Windows Terminal / PowerShell
 
 ## Megjegyzés a `CHECK` megkötésről
 Bizonyos MariaDB/MySQL verziókban a `CHECK` constraint viselkedése eltérhet.  
-Ha új környezetbe importálás után a jegy (1..5) korlátozás nem érvényesül,
-futtasd egyszer az alábbi parancsot:
-
-```sql
-ALTER TABLE beiratkozas
-  ADD CONSTRAINT chk_jegy CHECK (jegy IS NULL OR (jegy BETWEEN 1 AND 5));
-Add-Content .\README.md @'
----
 
 ## Állapot – v0.2 (Pont 1–3 kész)
 
