@@ -1,6 +1,3 @@
-﻿#!/usr/bin/env node
-"use strict";
-
 const fs = require("fs");
 const path = require("path");
 const Handlebars = require("handlebars");
@@ -12,130 +9,56 @@ function ensureDir(p) {
 
 function arg(flag, fallback = null) {
   const i = process.argv.indexOf(flag);
-  if (i !== -1 && process.argv[i + 1] && !process.argv[i + 1].startsWith("--")) {
-    return process.argv[i + 1];
-  }
+  if (i !== -1 && process.argv[i + 1]) return process.argv[i + 1];
   return fallback;
 }
 
-function readText(filePath, label) {
-  try {
-    const buf = fs.readFileSync(filePath);
-    let txt = buf.toString("utf8");
-    // BOM eltávolítás (Windows exportok)
-    if (txt.charCodeAt(0) === 0xfeff) txt = txt.slice(1);
-    return txt;
-  } catch (err) {
-    throw new Error(`${label} nem olvasható: ${filePath}\n${err.message}`);
-  }
-}
-
-function registerHelpers(dir) {
-  if (!dir) return;
-  if (!fs.existsSync(dir)) return;
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".js"));
-  for (const f of files) {
-    // minden helper modul {name, fn} vagy { [name]: fn, ... } lehet
-    // rugalmas regisztráció:
-    // eslint-disable-next-line import/no-dynamic-require, global-require
-    const mod = require(path.join(dir, f));
-    if (typeof mod === "function") {
-      Handlebars.registerHelper(path.basename(f, ".js"), mod);
-    } else if (mod && typeof mod === "object") {
-      for (const [name, fn] of Object.entries(mod)) {
-        if (typeof fn === "function") Handlebars.registerHelper(name, fn);
-      }
-    }
-  }
-}
-
-function registerPartials(dir) {
-  if (!dir) return;
-  if (!fs.existsSync(dir)) return;
-  const files = fs.readdirSync(dir).filter(f => f.endsWith(".hbs") || f.endsWith(".handlebars"));
-  for (const f of files) {
-    const name = path.basename(f).replace(/\.(hbs|handlebars)$/i, "");
-    const src = readText(path.join(dir, f), `Partial (${name})`);
-    Handlebars.registerPartial(name, src);
-  }
-}
-
 function main() {
-  const input = arg("--input") || "../db/diaknyilvantartas.sql";
-  const outDir = arg("--out") || "./out";
-  const templatePathArg = arg("--template") || "../templates/hello.hbs";
-  const helpersDir = arg("--helpers");   // pl. ../templates/helpers
-  const partialsDir = arg("--partials"); // pl. ../templates/partials
-  const force = process.argv.includes("--force");
+  // Parancssori argok: node src/generate.js <input> <out>  VAGY  --input ... --out ...
+  const cliInput = process.argv[2];
+  const cliOut = process.argv[3];
 
-  // Az input és a template útvonalakat a script könyvtárához viszonyítjuk, ha relatívak:
-  const baseDir = __dirname; // a generator.js helye
-  const inputPath = path.isAbsolute(input) ? input : path.resolve(process.cwd(), input);
-  const tplPath = path.isAbsolute(templatePathArg)
-    ? templatePathArg
-    : path.resolve(baseDir, templatePathArg);
+  // Preferáld a --input/--out flaget, ha nincs, használd a pozíciós argokat, ha az sincs, default
+  const inputRel = arg("--input") || cliInput || "../db/diaknyilvantartas.sql";
+  const outDirRel = arg("--out") || cliOut || "./out";
 
-  // 1) SQL beolvasás
-  const sql = readText(inputPath, "SQL input");
+  // inputot a jelenlegi fájlhoz képest oldjuk fel (stabil futtatás)
+  const resolvePreferringCwd = (p) => {
+  if (path.isAbsolute(p)) return p;
+  const fromCwd = path.resolve(process.cwd(), p);
+  return fs.existsSync(fromCwd) ? fromCwd : path.resolve(__dirname, p);
+};
+const inputAbs = resolvePreferringCwd(inputRel);
+  const outDirAbs = path.isAbsolute(outDirRel) ? outDirRel : path.resolve(process.cwd(), outDirRel);
 
-  // 2) parse + adatbázisnév kitalálás fallback-ként
-  let schema;
-  try {
-    schema = parseSchema(sql);
-  } catch (err) {
-    throw new Error(`parseSchema hiba: ${err.message}`);
+  if (!fs.existsSync(inputAbs)) {
+    console.error("❌ Nem találom az input SQL fájlt:", inputAbs);
+    process.exit(1);
   }
 
-  if (!schema || typeof schema !== "object") {
-    throw new Error("parseSchema üres vagy hibás objektumot adott vissza.");
+  const sql = fs.readFileSync(inputAbs, "utf8");
+  const schema = parseSchema(sql);
+
+  // schema.json kiírása
+  ensureDir(outDirAbs);
+  const schemaPath = path.join(outDirAbs, "schema.json");
+  fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf8");
+
+  // hello.hbs render
+  const tplPath = path.resolve(__dirname, "../templates/hello.hbs");
+  if (fs.existsSync(tplPath)) {
+    const tplSrc = fs.readFileSync(tplPath, "utf8");
+    const tpl = Handlebars.compile(tplSrc);
+    const outText = tpl(schema);
+
+    const samplesDir = path.join(outDirAbs, "samples");
+    ensureDir(samplesDir);
+    fs.writeFileSync(path.join(samplesDir, "HELLO.txt"), outText, "utf8");
+  } else {
+    console.warn("⚠️ Nem találom a sablont:", tplPath);
   }
 
-  if (!schema.database) {
-    const guess = path.basename(inputPath).replace(/\.sql$/i, "");
-    schema.database = guess; // pl. diaknyilvantartas
-  }
-
-  // 3) Handlebars környezet felkészítése
-  registerHelpers(helpersDir && path.resolve(baseDir, helpersDir));
-  registerPartials(partialsDir && path.resolve(baseDir, partialsDir));
-
-  const tplSrc = readText(tplPath, "Sablon (Handlebars)");
-  const tpl = Handlebars.compile(tplSrc);
-
-  // 4) Kimeneti könyvtár(ak)
-  ensureDir(outDir);
-  const samplesDir = path.join(outDir, "samples");
-  ensureDir(samplesDir);
-
-<<<<<<< Updated upstream
-  console.log("Kész: out/schema.json és out/samples/HELLO.txt létrehozva.");
-=======
-  const schemaJsonPath = path.join(outDir, "schema.json");
-  const helloPath = path.join(samplesDir, "HELLO.txt");
-
-  // 5) Felülírás-védelem (ha nincs --force)
-  if (!force) {
-    for (const p of [schemaJsonPath, helloPath]) {
-      if (fs.existsSync(p)) {
-        throw new Error(`A kimeneti fájl már létezik: ${p}\nHasználd a --force kapcsolót a felülíráshoz.`);
-      }
-    }
-  }
-
-  // 6) Kiírás
-  fs.writeFileSync(schemaJsonPath, JSON.stringify(schema, null, 2), "utf8");
-  const outText = tpl(schema);
-  fs.writeFileSync(helloPath, outText, "utf8");
-
-  console.log("Kész  →  ");
-  console.log(" -", schemaJsonPath);
-  console.log(" -", helloPath);
->>>>>>> Stashed changes
+  console.log("✅ Kész:", path.relative(process.cwd(), schemaPath), "és samples/HELLO.txt (ha volt sablon).");
 }
 
-try {
-  main();
-} catch (err) {
-  console.error("Hiba :", err.message);
-  process.exit(1);
-}
+main();
