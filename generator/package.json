@@ -4,9 +4,12 @@
     "description":  "",
     "main":  "index.js",
     "scripts":  {
-                    "generate":  "node src/generate.js",
+                    "parse":  "node src/parseSql.js ..\\db\\diaknyilvantartas.sql \u003e .\\out\\schema-only.json",
+                    "generate":  "node src/generate.js ..\\db\\diaknyilvantartas.sql .\\out",
                     "db:ping":  "node src/test-mysql2.js",
-                    "parse":  "node src/parseSql.js ..\\db\\diaknyilvantartas.sql \u003e .\\out\\schema-only.json"
+                    "introspect":  "node src/introspect.js",
+                    "test:parser":  "node src/test-parse.js",
+                    "clean":  "powershell -NoLogo -NoProfile -Command \"Remove-Item -Recurse -Force .\\out -ErrorAction SilentlyContinue; New-Item -ItemType Directory .\\out | Out-Null\""
                 },
     "keywords":  [
 

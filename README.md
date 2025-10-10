@@ -67,3 +67,9 @@ Kimenet: out/schema.json, out/samples/HELLO.txt
 DB név: USE vagy fájlnévből fallback 
 Fájlok: generator/src/parseSql.js, generator/src/generate.js, generator/templates/hello.hbs
 Futtatás: cd generator && npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
+
+### Gyors parancsok
+- \cd generator; npm run introspect\ – élő DB-ből schema.json
+- \cd generator; npm run parse\ – dumpból schema-only.json
+- \cd generator; npm run generate\ – kiírja out/schema.json + samples/HELLO.txt
+- \cd generator; npm run db:ping\ – egészség-ellenőrzés
