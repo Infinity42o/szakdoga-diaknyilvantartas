@@ -70,8 +70,8 @@ npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
 Állapot – v0.2 (1–3. pont kész)” blokk
 „How to run” (generator) egy háromsoros kódblokkban
 Állapot: KÉSZ.
-Parser: CREATE + ALTER (PK/FK/UNIQUE/INDEX), ENUM, VIEW kizárás ✅
-Kimenet: out/schema.json, out/samples/HELLO.txt ✅
-DB név: USE vagy fájlnévből fallback ✅
+Parser: CREATE + ALTER (PK/FK/UNIQUE/INDEX), ENUM, VIEW kizárás 
+Kimenet: out/schema.json, out/samples/HELLO.txt 
+DB név: USE vagy fájlnévből fallback 
 Fájlok: generator/src/parseSql.js, generator/src/generate.js, generator/templates/hello.hbs
 Futtatás: cd generator && npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
