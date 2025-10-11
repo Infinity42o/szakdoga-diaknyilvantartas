@@ -1,32 +1,38 @@
-﻿# Adatbázis-alapú alkalmazások automatikus generálása – Szakdolgozat
+### Adatbázis-alapú alkalmazások automatikus generálása – Szakdolgozat
 
-**Fókusz (jelen állapot):** 1–2. pont teljesítve
-- (1) Környezet előkészítése (Windows 11, XAMPP/MySQL, Node.js, VS Code, mappastruktúra)
-- (2) Adatbázis séma + bemeneti script (`diaknyilvantartas.sql`) létrehozva és importálható
+## Áttekintés
 
-## 1) Környezet előkészítése – összefoglaló
-- **XAMPP** (MySQL/MariaDB + phpMyAdmin) – MySQL szolgáltatás indítása
-- **Node.js (LTS)** – `node -v`, `npm -v` ellenőrzés
-- **Visual Studio Code** – fejlesztéshez
-- **PowerShell/Terminal** – parancsok futtatásához
+# Aktuális állapot: 1–3. pont kész
 
-## 2) Adatbázis séma – importálás
-**Eszköz:** phpMyAdmin (XAMPP), vagy MySQL Workbench
+(1) Környezet előkészítése (Windows 11, XAMPP/MariaDB, Node.js, VS Code)
+(2) Adatbázis-séma + bemeneti script (db/diaknyilvantartas.sql) importálható
+(3) Generátor: SQL→JSON parser + mintagenerálás, tesztekkel
 
-### phpMyAdmin (javasolt, egyszerű)
-1. Indítsd a **MySQL**-t a XAMPP Control Panelben.
-2. Nyisd meg: `http://localhost/phpmyadmin/` → **Importálás** fül.
-3. Válaszd a `db/diaknyilvantartas.sql` fájlt → **Go**.
+## 1) Környezet előkészítése – röviden
 
-> A script tartalmazhat `USE diaknyilvantartas`-t. Ha a dump nem hoz létre adatbázist, előtte készítsd el vagy válassz ki egyet.
+XAMPP (MariaDB/MySQL + phpMyAdmin) – indítsd a MySQL szolgáltatást
+Node.js (LTS) – ellenőrzés: node -v, npm -v
+Visual Studio Code – szerkesztéshez
+Windows Terminal / PowerShell – parancsok futtatásához
 
-### MySQL Workbench
-- **File → Run SQL Script…** → `db/diaknyilvantartas.sql` → futtatás.
+## 2) Adatbázis séma – import
 
-### Gyors ellenőrző lekérdezések
-```sql
+# Eszközök: phpMyAdmin (javasolt) vagy MySQL Workbench
+
+# phpMyAdmin (egyszerű)
+
+XAMPP Control Panel → MySQL Start
+-Nyisd meg: http://localhost/phpmyadmin/ → Importálás fül
+-Válaszd: db/diaknyilvantartas.sql → Go
+-Megjegyzés: a script tartalmazhat USE diaknyilvantartas sort. Ha a dump nem hoz létre DB-t, előtte hozd létre vagy válaszd ki.
+
+## MySQL Workbench
+File → Run SQL Script… → válaszd a db/diaknyilvantartas.sql fájlt → futtasd.
+
+## Gyors ellenőrző lekérdezések
 USE diaknyilvantartas;
 SHOW TABLES;
+
 SELECT COUNT(*) FROM hallgato;
 SELECT COUNT(*) FROM tanar;
 SELECT COUNT(*) FROM tantargy;
@@ -37,39 +43,89 @@ SELECT * FROM v_tantargy_atlag LIMIT 5;
 SELECT * FROM v_szak_hallgatoszam LIMIT 5;
 SELECT * FROM v_hallgato_kredit LIMIT 5;
 
+## 3) Generátor
 
-## Tesztelt verziók
-- **OS:** Windows 11 (22H2/23H4)
-- **DB környezet:** XAMPP (MySQL/MariaDB), phpMyAdmin; MySQL Workbench
-- **MySQL/MariaDB:** aktuális XAMPP-alapú MariaDB + MySQL Workbench klienssel tesztelve
-- **Shell:** Windows Terminal / PowerShell
+# Mit tud a parser (generator/src/parseSql.js)?
+CREATE + ALTER TABLE feldolgozás (nem csak CREATE-ben definiált kulcsokat lát)
+PK/FK (összetett kulcsok is: több oszlop)
+UNIQUE / INDEX (névvel vagy név nélkül)
+ENUM értékek kigyűjtése
+DEFAULT és ON UPDATE értékek felismerése
+COMMENT (oszlop megjegyzés) kiolvasása
+VIEW-k kizárása a sémából
+DB név: CREATE DATABASE / USE alapján, fallback a bemeneti fájlnévből
 
-## Megjegyzés a `CHECK` megkötésről
-Bizonyos MariaDB/MySQL verziókban a `CHECK` constraint viselkedése eltérhet.  
+# Parancsok
+A következőket a generator/ mappából kell futtatni:
 
-## Állapot – v0.2 (Pont 1–3 kész)
+# 1) Dumpból sémát olvas (nincs szükség élő DB-re):
+npm run parse
+# kimenet: generator/out/schema-only.json
 
-**Kész:**
-- (1) Környezet + mappastruktúra
-- (2) MySQL séma + mintaadatok (`db/diaknyilvantartas.sql`)
-- (3) Generátor alapok: SQL→JSON parser (PK/FK, UNIQUE, INDEX, ENUM, VIEW-k kizárva) + Handlebars próbagenerálás
+# 2) Élő DB-ből introspektál INFORMATION_SCHEMA alapján:
+npm run introspect
+# kimenet: generator/src/out/schema.json
+# .env minta: generator/.env.example (másold .env-re és töltsd ki)
 
-**Hogyan futtasd a generátort:**
-```bash
+# 3) Generálás (séma → kimeneti fájlok/minták):
+npm run generate
+# kimenet: generator/out/schema.json + generator/out/samples/HELLO.txt
+
+# 4) Gyors egészség-ellenőrzés az élő DB-n:
+npm run db:ping
+
+# Gyors parancsok – bárhonnan (PowerShell): 
+cd generator; npm run introspect   # élő DB → schema.json
+cd generator; npm run parse        # dump → schema-only.json
+cd generator; npm run generate     # out/schema.json + samples/HELLO.txt
+cd generator; npm run db:ping      # egészség-ellenőrzés
+
+# Fő fájlok
+-generator/src/parseSql.js – SQL → JSON parser
+-generator/src/generate.js – generálási belépő
+-generator/src/introspect.js – élő DB introspekció
+-generator/src/test-parse.js + generator/fixtures/*.sql – parser tesztek
+-generator/templates/hello.hbs – minta sablon
+
+# Tesztelés
+
+A parserre van egy pici, célzott tesztcsomag. Futtatás:
 cd generator
-npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
-# Eredmény: out/schema.json + out/samples/HELLO.txt
-Állapot – v0.2 (1–3. pont kész)” blokk
-„How to run” (generator) egy háromsoros kódblokkban
-Állapot: KÉSZ.
-Parser: CREATE + ALTER (PK/FK/UNIQUE/INDEX), ENUM, VIEW kizárás 
-Kimenet: out/schema.json, out/samples/HELLO.txt 
-DB név: USE vagy fájlnévből fallback 
-Fájlok: generator/src/parseSql.js, generator/src/generate.js, generator/templates/hello.hbs
-Futtatás: cd generator && npm run generate -- --input ../db/diaknyilvantartas.sql --out ./out
+npm run test:parser
+# várható kimenet: "test-parse: minden OK"
 
-### Gyors parancsok
-- \cd generator; npm run introspect\ – élő DB-ből schema.json
-- \cd generator; npm run parse\ – dumpból schema-only.json
-- \cd generator; npm run generate\ – kiírja out/schema.json + samples/HELLO.txt
-- \cd generator; npm run db:ping\ – egészség-ellenőrzés
+# A tesztek lefedik:
+-összetett PK/FK eseteket,
+-UNIQUE / INDEX szintaxist,
+-ENUM, DEFAULT, ON UPDATE, COMMENT kiolvasását.
+
+# Beállítás (introspect)
+A generator/.env.example mintát másold .env néven és töltsd ki ha üres lenne:
+
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=diaknyilvantartas
+DB_PORT=3306
+
+# Git beállítások
+.gitignore: a generált kimenetek kimaradnak a verziókezelésből (tiszta history, kevesebb konfliktus).
+.env ignorálva van; a .env.example verziózott minta.
+.gitattributes: normalizált soremelés (CRLF/LF) – egységesítés különböző eszközök között.
+
+## Tesztelt környezet
+
+OS: Windows 11 (22H2/23H4)
+DB: XAMPP (MariaDB), phpMyAdmin; kliens: MySQL Workbench
+Shell: Windows Terminal / PowerShell
+Node.js: LTS (tesztelve v22-vel is)
+
+## Következő lépések (terv)
+-Generált kimenetek bővítése (TypeScript interfészek, ORM modellek, migrációk, OpenAPI/Swagger, seedek)
+-Validációk/kommentek átvezetése a generált kódba
+-Több sablon (REST controller, service, DAO), projektsablonok
+
+### Ha bármi elakad, a npm run test:parser az első gyors ellenőrzés, hogy a parse-olás rendben van-e.
+
+### következő körben megtervezem, hogy a generate milyen konkrét kimeneteket állítson elő (TS interfészek, Sequelize/TypeORM modellek, OpenAPI-séma, seedek), és melyik mezőkből milyen komment/validáció legyen.
+## Backend generálás az alábbi terv szerint. Javaslatom: alapértelmezettként Express + Sequelize (illeszkedik a mostani mysql2/MariaDB környezethez), de a sablonokat úgy írom meg, hogy később könnyen váltható legyen TypeORM vagy Prisma irányba.
