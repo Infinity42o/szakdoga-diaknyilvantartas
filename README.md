@@ -45,7 +45,7 @@ SELECT * FROM v_hallgato_kredit LIMIT 5;
 
 ## 3) Generátor
 
-# Mit tud a parser (generator/src/parseSql.js)?
+### Mit tud a parser (generator/src/parseSql.js)?
 CREATE + ALTER TABLE feldolgozás (nem csak CREATE-ben definiált kulcsokat lát)
 PK/FK (összetett kulcsok is: több oszlop)
 UNIQUE / INDEX (névvel vagy név nélkül)
@@ -60,12 +60,12 @@ A következőket a generator/ mappából kell futtatni:
 
 ### 1) Dumpból sémát olvas (nincs szükség élő DB-re):
 npm run parse
-# kimenet: generator/out/schema-only.json
+### kimenet: generator/out/schema-only.json
 
 ### 2) Élő DB-ből introspektál INFORMATION_SCHEMA alapján:
 npm run introspect
-# kimenet: generator/src/out/schema.json
-# .env minta: generator/.env.example (másold .env-re és töltsd ki)
+### kimenet: generator/src/out/schema.json
+### .env minta: generator/.env.example (másold .env-re és töltsd ki)
 
 ### 3) Generálás (séma → kimeneti fájlok/minták):
 npm run generate
@@ -128,4 +128,4 @@ Node.js: LTS (tesztelve v22-vel is)
 # Ha bármi elakad, a npm run test:parser az első gyors ellenőrzés, hogy a parse-olás rendben van-e.
 
 # következő körben megtervezem, hogy a generate milyen konkrét kimeneteket állítson elő (TS interfészek, Sequelize/TypeORM modellek, OpenAPI-séma, seedek), és melyik mezőkből milyen komment/validáció legyen.
-## Backend generálás az alábbi terv szerint. Javaslatom: alapértelmezettként Express + Sequelize (illeszkedik a mostani mysql2/MariaDB környezethez), de a sablonokat úgy írom meg, hogy később könnyen váltható legyen TypeORM vagy Prisma irányba.
+# Backend generálás az alábbi terv szerint. Javaslatom: alapértelmezettként Express + Sequelize (illeszkedik a mostani mysql2/MariaDB környezethez), de a sablonokat úgy írom meg, hogy később könnyen váltható legyen TypeORM vagy Prisma irányba.
