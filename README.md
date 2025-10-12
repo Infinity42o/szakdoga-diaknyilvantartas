@@ -125,7 +125,7 @@ Node.js: LTS (tesztelve v22-vel is)
 -Validációk/kommentek átvezetése a generált kódba
 -Több sablon (REST controller, service, DAO), projektsablonok
 
-# Ha bármi elakad, a npm run test:parser az első gyors ellenőrzés, hogy a parse-olás rendben van-e.
+## Ha bármi elakad, a npm run test:parser az első gyors ellenőrzés, hogy a parse-olás rendben van-e.
 
-# következő körben megtervezem, hogy a generate milyen konkrét kimeneteket állítson elő (TS interfészek, Sequelize/TypeORM modellek, OpenAPI-séma, seedek), és melyik mezőkből milyen komment/validáció legyen.
-# Backend generálás az alábbi terv szerint. Javaslatom: alapértelmezettként Express + Sequelize (illeszkedik a mostani mysql2/MariaDB környezethez), de a sablonokat úgy írom meg, hogy később könnyen váltható legyen TypeORM vagy Prisma irányba.
+## következő körben megtervezem, hogy a generate milyen konkrét kimeneteket állítson elő (TS interfészek, Sequelize/TypeORM modellek, OpenAPI-séma, seedek), és melyik mezőkből milyen komment/validáció legyen.
+## Backend generálás az alábbi terv szerint. Javaslatom: alapértelmezettként Express + Sequelize (illeszkedik a mostani mysql2/MariaDB környezethez), de a sablonokat úgy írom meg, hogy később könnyen váltható legyen TypeORM vagy Prisma irányba.
