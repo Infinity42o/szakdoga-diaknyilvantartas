@@ -1,0 +1,24 @@
+import "dotenv/config";
+import { sequelize } from "../src/config/db";
+{{#each tables}}
+import { seed{{pascal name}} } from "./{{name}}.seed";
+{{/each}}
+
+async function main() {
+  await sequelize.authenticate();
+  const t = await sequelize.transaction();
+  try {
+    {{#each tables}}
+    await seed{{pascal name}}({ transaction: t });
+    {{/each}}
+    await t.commit();
+    console.log("✅ Seed done");
+  } catch (e) {
+    await t.rollback();
+    console.error("❌ Seed failed:", e);
+    process.exit(1);
+  } finally {
+    await sequelize.close();
+  }
+}
+main();

@@ -1,0 +1,54 @@
+openapi: 3.0.3
+info:
+  title: "{{database}} API"
+  version: "1.0.0"
+paths:
+{{#each tables}}
+  /{{name}}:
+    get:
+      summary: List {{name}}
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/{{pascal name}}" }
+    post:
+      summary: Create {{name}}
+      responses:
+        "201":
+          description: created
+  /{{name}}/{id}:
+    get:
+      summary: Get {{name}} by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/{{pascal name}}" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update {{name}}
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete {{name}}
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+{{/each}}
+components:
+  schemas:
+{{#each tables}}
+    {{pascal name}}:
+      type: object
+      properties:
+{{#each columns}}
+        {{name}}:
+          type: string
+          description: "{{#if comment}}{{comment}}{{else}}no comment{{/if}}"
+{{/each}}
+{{/each}}

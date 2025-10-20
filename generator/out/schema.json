@@ -1,0 +1,473 @@
+{
+  "database": null,
+  "tables": [
+    {
+      "name": "beiratkozas",
+      "columns": [
+        {
+          "name": "hallgato_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kurzus_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "felvet_datum",
+          "type": "datetime",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "current_timestamp()",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "jegy",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "hallgato_id",
+        "kurzus_id"
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "hallgato_id"
+          ],
+          "references": {
+            "table": "hallgato",
+            "columns": [
+              "id"
+            ]
+          }
+        },
+        {
+          "columns": [
+            "kurzus_id"
+          ],
+          "references": {
+            "table": "kurzus",
+            "columns": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_beiratkozas_kurzus",
+          "columns": [
+            "kurzus_id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "hallgato",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "neptun",
+          "type": "char(6)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nem",
+          "type": "enum('no','ferfi','egyeb')",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": [
+            "no",
+            "ferfi",
+            "egyeb"
+          ],
+          "comment": null
+        },
+        {
+          "name": "szak",
+          "type": "varchar(80)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "evfolyam",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "szuldatum",
+          "type": "date",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "neptun",
+          "columns": [
+            "neptun"
+          ]
+        },
+        {
+          "name": "uq_hallgato_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "kurzus",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tantargy_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tanar_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "felev",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tipus",
+          "type": "enum('eloadas','gyakorlat','labor')",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "eloadas",
+          "onUpdate": null,
+          "enumValues": [
+            "eloadas",
+            "gyakorlat",
+            "labor"
+          ],
+          "comment": null
+        },
+        {
+          "name": "kapacitas",
+          "type": "smallint(5) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "100",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "terem",
+          "type": "varchar(32)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "tanar_id"
+          ],
+          "references": {
+            "table": "tanar",
+            "columns": [
+              "id"
+            ]
+          }
+        },
+        {
+          "columns": [
+            "tantargy_id"
+          ],
+          "references": {
+            "table": "tantargy",
+            "columns": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_kurzus_tantargy",
+          "columns": [
+            "tantargy_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_kurzus_tanar",
+          "columns": [
+            "tanar_id"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    {
+      "name": "tanar",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tanszek",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tanar_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "tantargy",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kod",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(160)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kredit",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "aktiv",
+          "type": "tinyint(1)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "1",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tantargy_kod",
+          "columns": [
+            "kod"
+          ]
+        }
+      ],
+      "indexes": []
+    }
+  ]
+}

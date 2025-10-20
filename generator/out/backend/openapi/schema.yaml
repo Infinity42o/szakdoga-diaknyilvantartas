@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: " API"
+  version: "1.0.0"
+paths:
+  /beiratkozas:
+    get:
+      summary: List beiratkozas
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Beiratkozas" }
+    post:
+      summary: Create beiratkozas
+      responses:
+        "201":
+          description: created
+  /beiratkozas/{id}:
+    get:
+      summary: Get beiratkozas by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Beiratkozas" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update beiratkozas
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete beiratkozas
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+  /hallgato:
+    get:
+      summary: List hallgato
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Hallgato" }
+    post:
+      summary: Create hallgato
+      responses:
+        "201":
+          description: created
+  /hallgato/{id}:
+    get:
+      summary: Get hallgato by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Hallgato" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update hallgato
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete hallgato
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+  /kurzus:
+    get:
+      summary: List kurzus
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Kurzus" }
+    post:
+      summary: Create kurzus
+      responses:
+        "201":
+          description: created
+  /kurzus/{id}:
+    get:
+      summary: Get kurzus by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Kurzus" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update kurzus
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete kurzus
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+  /tanar:
+    get:
+      summary: List tanar
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tanar" }
+    post:
+      summary: Create tanar
+      responses:
+        "201":
+          description: created
+  /tanar/{id}:
+    get:
+      summary: Get tanar by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Tanar" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update tanar
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete tanar
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+  /tantargy:
+    get:
+      summary: List tantargy
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Tantargy" }
+    post:
+      summary: Create tantargy
+      responses:
+        "201":
+          description: created
+  /tantargy/{id}:
+    get:
+      summary: Get tantargy by id
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok, content: { application/json: { schema: { $ref: "#/components/schemas/Tantargy" } } } }
+        "404": { description: not found }
+    patch:
+      summary: Update tantargy
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "200": { description: ok }
+        "404": { description: not found }
+    delete:
+      summary: Delete tantargy
+      parameters: [{ name: id, in: path, required: true, schema: { type: string } }]
+      responses:
+        "204": { description: deleted }
+        "404": { description: not found }
+components:
+  schemas:
+    Beiratkozas:
+      type: object
+      properties:
+        hallgato_id:
+          type: string
+          description: "no comment"
+        kurzus_id:
+          type: string
+          description: "no comment"
+        felvet_datum:
+          type: string
+          description: "no comment"
+        jegy:
+          type: string
+          description: "no comment"
+    Hallgato:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "no comment"
+        neptun:
+          type: string
+          description: "no comment"
+        nev:
+          type: string
+          description: "no comment"
+        nem:
+          type: string
+          description: "no comment"
+        szak:
+          type: string
+          description: "no comment"
+        evfolyam:
+          type: string
+          description: "no comment"
+        szuldatum:
+          type: string
+          description: "no comment"
+        email:
+          type: string
+          description: "no comment"
+    Kurzus:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "no comment"
+        tantargy_id:
+          type: string
+          description: "no comment"
+        tanar_id:
+          type: string
+          description: "no comment"
+        felev:
+          type: string
+          description: "no comment"
+        tipus:
+          type: string
+          description: "no comment"
+        kapacitas:
+          type: string
+          description: "no comment"
+        terem:
+          type: string
+          description: "no comment"
+    Tanar:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "no comment"
+        nev:
+          type: string
+          description: "no comment"
+        tanszek:
+          type: string
+          description: "no comment"
+        email:
+          type: string
+          description: "no comment"
+    Tantargy:
+      type: object
+      properties:
+        id:
+          type: string
+          description: "no comment"
+        kod:
+          type: string
+          description: "no comment"
+        nev:
+          type: string
+          description: "no comment"
+        kredit:
+          type: string
+          description: "no comment"
+        aktiv:
+          type: string
+          description: "no comment"
