@@ -60,12 +60,12 @@ A következőket a generator/ mappából kell futtatni:
 
 ### 1) Dumpból sémát olvas (nincs szükség élő DB-re):
 npm run parse
-# kimenet: generator/out/schema-only.json
+### kimenet: generator/out/schema-only.json
 
 ### 2) Élő DB-ből introspektál INFORMATION_SCHEMA alapján:
 npm run introspect
 ### kimenet: generator/src/out/schema.json
-# .env minta: generator/.env.example (másold .env-re és töltsd ki)
+### .env minta: generator/.env.example (másold .env-re és töltsd ki)
 
 ### 3) Generálás (séma → kimeneti fájlok/minták):
 npm run generate
