@@ -3,19 +3,39 @@ Táblák száma: {{tables.length}}
 
 {{#each tables}}
 - {{name}} ({{columns.length}} mező)
-  PK: {{#if primaryKey}}{{primaryKey}}{{else}}(nincs){{/if}}
+  PK: {{#if primaryKey.length}}{{primaryKey}}{{else}}(nincs){{/if}}
   FK-k:
   {{#if foreignKeys.length}}
-  {{#each foreignKeys}}
-    - {{this.column}} → {{this.references.table}}({{this.references.column}})
+  {{#each foreignKeys}}    - ({{columns}}) → {{references.table}}({{references.columns}})
   {{/each}}
-  {{else}}
-    (nincs)
+  {{else}}    (nincs)
+  {{/if}}
+
+  UNIQUE kulcsok:
+  {{#if uniqueKeys.length}}
+  {{#each uniqueKeys}}    - {{#if name}}{{name}}: {{/if}}[{{columns}}]
+  {{/each}}
+  {{else}}    (nincs)
+  {{/if}}
+
+  Indexek:
+  {{#if indexes.length}}
+  {{#each indexes}}    - {{#if name}}{{name}}{{else}}(névtelen){{/if}}: [{{columns}}]{{#if unique}} (UNIQUE){{/if}}
+  {{/each}}
+  {{else}}    (nincs)
   {{/if}}
 
   Mezők:
   {{#each columns}}
-    - {{name}} : {{type}}{{#if enumValues}} ENUM{{/if}}{{#if default}} (DEFAULT={{default}}){{/if}}{{#unless allowNull}} NOT NULL{{/unless}}
-      {{#if enumValues}}    enum: [{{#each enumValues}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}]{{/if}}
+    - {{name}} : {{type}}
+      {{#if allowNull}}{{else}}NOT NULL{{/if}}{{#if autoIncrement}} AUTO_INCREMENT{{/if}}
+      {{#if default}} (DEFAULT={{default}}){{/if}}{{#if onUpdate}} (ON UPDATE={{onUpdate}}){{/if}}
+      {{#if enumValues}} 
+          enum: [{{#each enumValues}}{{this}}{{#unless @last}}, {{/unless}}{{/each}}]
+      {{/if}}
+      {{#if comment}} 
+          comment: "{{comment}}"
+      {{/if}}
   {{/each}}
+
 {{/each}}

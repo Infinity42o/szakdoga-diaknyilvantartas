@@ -1,0 +1,33 @@
+﻿import { sequelize } from "../config/db";
+{{#each tables}}
+import make{{pascal name}} from "./{{name}}";
+{{/each}}
+{{#each tables}}
+const {{pascal name}} = make{{pascal name}}(sequelize);
+{{/each}}
+
+export const models = {
+{{#each tables}}
+  {{pascal name}}: {{pascal name}},
+  {{lc name}}: {{pascal name}},
+  {{camel name}}: {{pascal name}},
+{{/each}}
+};
+
+{{#each tables}}
+{{#each foreignKeys}}
+(models.{{pascal ../name}} as any).belongsTo(models.{{pascal references.table}}, {
+  foreignKey: "{{columns.[0]}}",
+  as: "{{lc references.table}}"
+});
+(models.{{pascal references.table}} as any).hasMany(models.{{pascal ../name}}, {
+  foreignKey: "{{columns.[0]}}",
+  as: "{{lc ../name}}List"
+});
+{{/each}}
+{{/each}}
+
+export async function connect() {
+  await sequelize.authenticate();
+}
+export { sequelize };

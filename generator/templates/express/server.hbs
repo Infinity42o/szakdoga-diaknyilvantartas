@@ -1,0 +1,31 @@
+﻿import "dotenv/config";
+import express from "express";
+import { sequelize, models } from "./models";
+{{#each tables}}
+import make{{pascal name}}Router from "./routes/{{name}}";
+{{/each}}
+
+const app = express();
+app.use(express.json());
+
+{{#each tables}}
+app.use("/api/{{name}}", make{{pascal name}}Router(models));
+{{/each}}
+
+const port = Number(process.env.PORT || 3000);
+
+async function main() {
+  await sequelize.authenticate();
+  app.listen(port, () => {
+    console.log(`✅ API listening on http://localhost:${port}`);
+  });
+}
+// --- egységes hibakezelés (utolsó middleware)
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("❌", err);
+  const status = Number(err?.status || err?.statusCode || 500);
+  res.status(status).json({
+    error: err?.message || "Internal Server Error",
+  });
+});
+main();

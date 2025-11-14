@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const Handlebars = require("handlebars");
 const { parseSchema } = require("./parseSql");
@@ -14,34 +14,51 @@ function arg(flag, fallback = null) {
 }
 
 function main() {
-  const input = arg("--input") || "../db/diaknyilvantartas.sql";
-  const outDir = arg("--out") || "./out";
+  // Parancssori argok: node src/generate.js <input> <out>  VAGY  --input ... --out ...
+  const cliInput = process.argv[2];
+  const cliOut = process.argv[3];
 
-  const sql = fs.readFileSync(path.resolve(process.cwd(), input), "utf8");
+  // Preferáld a --input/--out flaget, ha nincs, használd a pozíciós argokat, ha az sincs, default
+  const inputRel = arg("--input") || cliInput || "../db/diaknyilvantartas.sql";
+  const outDirRel = arg("--out") || cliOut || "./out";
+
+  // inputot a jelenlegi fájlhoz képest oldjuk fel (stabil futtatás)
+  const resolvePreferringCwd = (p) => {
+  if (path.isAbsolute(p)) return p;
+  const fromCwd = path.resolve(process.cwd(), p);
+  return fs.existsSync(fromCwd) ? fromCwd : path.resolve(__dirname, p);
+};
+const inputAbs = resolvePreferringCwd(inputRel);
+  const outDirAbs = path.isAbsolute(outDirRel) ? outDirRel : path.resolve(process.cwd(), outDirRel);
+
+  if (!fs.existsSync(inputAbs)) {
+    console.error("❌ Nem találom az input SQL fájlt:", inputAbs);
+    process.exit(1);
+  }
+
+  const sql = fs.readFileSync(inputAbs, "utf8");
   const schema = parseSchema(sql);
-  // Ha a dumpban nincs USE/CREATE DATABASE, következtessünk a fájlnévből
-if (!schema.database) {
-  const abs = path.resolve(process.cwd(), input);
-  const guess = path.basename(abs).replace(/\.sql$/i, "");
-  schema.database = guess; // pl. diaknyilvantartas
-}
-
 
   // schema.json kiírása
-  ensureDir(outDir);
-  fs.writeFileSync(path.join(outDir, "schema.json"), JSON.stringify(schema, null, 2), "utf8");
+  ensureDir(outDirAbs);
+  const schemaPath = path.join(outDirAbs, "schema.json");
+  fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf8");
 
   // hello.hbs render
   const tplPath = path.resolve(__dirname, "../templates/hello.hbs");
-  const tplSrc = fs.readFileSync(tplPath, "utf8");
-  const tpl = Handlebars.compile(tplSrc);
-  const outText = tpl(schema);
+  if (fs.existsSync(tplPath)) {
+    const tplSrc = fs.readFileSync(tplPath, "utf8");
+    const tpl = Handlebars.compile(tplSrc);
+    const outText = tpl(schema);
 
-  const samplesDir = path.join(outDir, "samples");
-  ensureDir(samplesDir);
-  fs.writeFileSync(path.join(samplesDir, "HELLO.txt"), outText, "utf8");
+    const samplesDir = path.join(outDirAbs, "samples");
+    ensureDir(samplesDir);
+    fs.writeFileSync(path.join(samplesDir, "HELLO.txt"), outText, "utf8");
+  } else {
+    console.warn("⚠️ Nem találom a sablont:", tplPath);
+  }
 
-  console.log("✅ Kész: out/schema.json és out/samples/HELLO.txt létrehozva.");
+  console.log("✅ Kész:", path.relative(process.cwd(), schemaPath), "és samples/HELLO.txt (ha volt sablon).");
 }
 
 main();

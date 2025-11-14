@@ -1,0 +1,29 @@
+import { DataTypes, Model, Sequelize } from "sequelize";
+
+export default function make{{pascal name}}(sequelize: Sequelize) {
+  class {{pascal name}} extends Model {}
+
+  {{pascal name}}.init({
+{{#each columns}}
+    {{name}}: {
+      // {{#if comment}}{{comment}}{{else}}no comment{{/if}}
+      type: DataTypes.{{sequelizeType type enumValues}},
+      allowNull: {{#if allowNull}}true{{else}}false{{/if}},
+{{#if default}}      defaultValue: {{#if (lc default) "current_timestamp()" }}DataTypes.NOW{{else}}"{{default}}"{{/if}},{{/if}}
+{{#if unique}}      unique: true,{{/if}}
+{{#if autoIncrement}}      autoIncrement: true,{{/if}}
+    },
+{{/each}}
+  }, {
+    sequelize,
+    tableName: "{{name}}",
+    timestamps: false,
+    indexes: [
+{{#each uniqueKeys}}
+      { unique: true, fields: [{{#each columns}}"{{this}}"{{#unless @last}}, {{/unless}}{{/each}}] }{{#unless @last}},{{/unless}}
+{{/each}}
+    ]
+  });
+
+  return {{pascal name}};
+};

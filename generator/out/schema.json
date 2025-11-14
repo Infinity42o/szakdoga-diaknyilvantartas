@@ -1,5 +1,5 @@
 {
-  "database": "diaknyilvantartas",
+  "database": null,
   "tables": [
     {
       "name": "beiratkozas",
@@ -11,7 +11,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "kurzus_id",
@@ -20,7 +22,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "felvet_datum",
@@ -29,7 +33,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": "current_timestamp()",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "jegy",
@@ -38,7 +44,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": "NULL",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         }
       ],
       "primaryKey": [
@@ -47,18 +55,36 @@
       ],
       "foreignKeys": [
         {
-          "column": "hallgato_id",
+          "columns": [
+            "hallgato_id"
+          ],
           "references": {
             "table": "hallgato",
-            "column": "id"
+            "columns": [
+              "id"
+            ]
           }
         },
         {
-          "column": "kurzus_id",
+          "columns": [
+            "kurzus_id"
+          ],
           "references": {
             "table": "kurzus",
-            "column": "id"
+            "columns": [
+              "id"
+            ]
           }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_beiratkozas_kurzus",
+          "columns": [
+            "kurzus_id"
+          ],
+          "unique": false
         }
       ]
     },
@@ -72,7 +98,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "neptun",
@@ -81,7 +109,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "nev",
@@ -90,7 +120,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "nem",
@@ -99,11 +131,13 @@
           "autoIncrement": false,
           "unique": false,
           "default": "NULL",
+          "onUpdate": null,
           "enumValues": [
             "no",
             "ferfi",
             "egyeb"
-          ]
+          ],
+          "comment": null
         },
         {
           "name": "szak",
@@ -112,7 +146,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "evfolyam",
@@ -121,7 +157,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "szuldatum",
@@ -130,7 +168,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": "NULL",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "email",
@@ -139,13 +179,30 @@
           "autoIncrement": false,
           "unique": false,
           "default": "NULL",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         }
       ],
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "neptun",
+          "columns": [
+            "neptun"
+          ]
+        },
+        {
+          "name": "uq_hallgato_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "kurzus",
@@ -157,7 +214,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "tantargy_id",
@@ -166,7 +225,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "tanar_id",
@@ -175,7 +236,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "felev",
@@ -184,7 +247,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "tipus",
@@ -193,11 +258,13 @@
           "autoIncrement": false,
           "unique": false,
           "default": "eloadas",
+          "onUpdate": null,
           "enumValues": [
             "eloadas",
             "gyakorlat",
             "labor"
-          ]
+          ],
+          "comment": null
         },
         {
           "name": "kapacitas",
@@ -206,7 +273,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": "100",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "terem",
@@ -215,7 +284,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": "NULL",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         }
       ],
       "primaryKey": [
@@ -223,18 +294,43 @@
       ],
       "foreignKeys": [
         {
-          "column": "tanar_id",
+          "columns": [
+            "tanar_id"
+          ],
           "references": {
             "table": "tanar",
-            "column": "id"
+            "columns": [
+              "id"
+            ]
           }
         },
         {
-          "column": "tantargy_id",
+          "columns": [
+            "tantargy_id"
+          ],
           "references": {
             "table": "tantargy",
-            "column": "id"
+            "columns": [
+              "id"
+            ]
           }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_kurzus_tantargy",
+          "columns": [
+            "tantargy_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_kurzus_tanar",
+          "columns": [
+            "tanar_id"
+          ],
+          "unique": false
         }
       ]
     },
@@ -248,7 +344,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "nev",
@@ -257,7 +355,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "tanszek",
@@ -266,7 +366,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "email",
@@ -275,13 +377,24 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         }
       ],
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tanar_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "tantargy",
@@ -293,7 +406,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "kod",
@@ -302,7 +417,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "nev",
@@ -311,7 +428,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "kredit",
@@ -320,7 +439,9 @@
           "autoIncrement": false,
           "unique": false,
           "default": null,
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         },
         {
           "name": "aktiv",
@@ -329,13 +450,24 @@
           "autoIncrement": false,
           "unique": false,
           "default": "1",
-          "enumValues": null
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
         }
       ],
       "primaryKey": [
         "id"
       ],
-      "foreignKeys": []
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tantargy_kod",
+          "columns": [
+            "kod"
+          ]
+        }
+      ],
+      "indexes": []
     }
   ]
 }
