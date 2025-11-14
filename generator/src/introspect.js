@@ -1,4 +1,4 @@
-﻿const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
 require("dotenv").config();
@@ -11,12 +11,12 @@ function groupPush(map, key, v){ if(!map.has(key)) map.set(key,[]); map.get(key)
   const DB_HOST = process.env.DB_HOST || "localhost";
   const DB_USER = process.env.DB_USER || "root";
   const DB_PASS = process.env.DB_PASS || "";
-  const DB_NAME = process.env.DB_NAME;
+  const DB_NAME = process.env.DB_NAME || "diaknyilvantartas"; 
   const DB_PORT = Number(process.env.DB_PORT || 3306);
 
   if(!DB_NAME){ console.error("❌ .env DB_NAME hiányzik"); process.exit(1); }
 
-  const outDir = path.resolve(__dirname, "./out");
+  const outDir = path.resolve(process.cwd(), "./out");
   ensureDir(outDir);
   const outFile = path.join(outDir, "schema.json");
 
