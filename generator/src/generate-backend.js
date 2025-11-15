@@ -10,7 +10,7 @@ const outRoot    = path.resolve(process.cwd(), outRootArg  || "./backend");
 
 // ---- read schema (UTF-8 / UTF-16 autodetect) ----
 if (!fs.existsSync(schemaPath)) {
-  console.error("❌ Nem találom a sémát:", schemaPath);
+  console.error("hiba! Nem találom a sémát:", schemaPath);
   process.exit(1);
 }
 const buf = fs.readFileSync(schemaPath);
@@ -349,21 +349,11 @@ app.get('/health', async (req, res) => {
 // Mount CRUD routers
 ${mounts}
 
+// Extra: statisztikai végpontok
+const statsRouter = require('./routes/stats.js');
+app.use('/api/stats', statsRouter);
+
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-app.listen(PORT, () => console.log('✅ API listening on port', PORT));`;
+app.listen(PORT, () => console.log('Múkszik, API listening on port', PORT));`;
 }
 
-// --- Generálás ---
-for (const table of schema.tables || []) {
-  const modelCode = renderModel(table);
-  fs.writeFileSync(path.join(outRoot, "models", `${table.name}.js`), modelCode, "utf8");
-
-  const routeCode = renderRoute(table);
-  fs.writeFileSync(path.join(outRoot, "routes", `${table.name}.js`), routeCode, "utf8");
-}
-
-// db index + app
-fs.writeFileSync(path.join(outRoot, "db", "index.js"), renderDbIndex(), "utf8");
-fs.writeFileSync(path.join(outRoot, "app.js"), renderApp(schema.tables || []), "utf8");
-
-console.log("✅ Backend generálva:", outRoot);

@@ -32,11 +32,11 @@ const tanarRouter = require('./routes/tanar.js');
 app.use('/api/tanar', tanarRouter);
 const tantargyRouter = require('./routes/tantargy.js');
 app.use('/api/tantargy', tantargyRouter);
-// backend/app.js
-const statsRouter = require('./routes/stats');
+const statsRouter = require('./routes/stats.js');
 app.use('/api/stats', statsRouter);
 
 
-
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-app.listen(PORT, () => console.log('✅ API listening on port', PORT));
+app.listen(PORT, () => console.log('Műkszik, API listening on port', PORT));
+
+module.exports = app;

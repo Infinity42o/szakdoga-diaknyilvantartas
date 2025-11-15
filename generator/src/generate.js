@@ -32,7 +32,7 @@ const inputAbs = resolvePreferringCwd(inputRel);
   const outDirAbs = path.isAbsolute(outDirRel) ? outDirRel : path.resolve(process.cwd(), outDirRel);
 
   if (!fs.existsSync(inputAbs)) {
-    console.error("❌ Nem találom az input SQL fájlt:", inputAbs);
+    console.error("hiba! Nem találom az input SQL fájlt:", inputAbs);
     process.exit(1);
   }
 
@@ -55,10 +55,10 @@ const inputAbs = resolvePreferringCwd(inputRel);
     ensureDir(samplesDir);
     fs.writeFileSync(path.join(samplesDir, "HELLO.txt"), outText, "utf8");
   } else {
-    console.warn("⚠️ Nem találom a sablont:", tplPath);
+    console.warn("Hiba! Nem találom a sablont:", tplPath);
   }
 
-  console.log("✅ Kész:", path.relative(process.cwd(), schemaPath), "és samples/HELLO.txt (ha volt sablon).");
+  console.log("Műkszik, Kész:", path.relative(process.cwd(), schemaPath), "és samples/HELLO.txt (ha volt sablon).");
 }
 
 main();
