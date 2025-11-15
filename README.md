@@ -114,7 +114,7 @@ npm run start:backend
 
 Ha sikerült:
 
-✅ API listening on port 3000
+Műkszik, API listening on port 3000
 
 
 Egészség-ellenőrzés:
