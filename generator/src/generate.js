@@ -44,6 +44,18 @@ const inputAbs = resolvePreferringCwd(inputRel);
   const schemaPath = path.join(outDirAbs, "schema.json");
   fs.writeFileSync(schemaPath, JSON.stringify(schema, null, 2), "utf8");
 
+    // seed.sql kiírása, ha vannak INSERT-ek
+  if (schema.seed && Array.isArray(schema.seed.inserts) && schema.seed.inserts.length) {
+    const seedSql = [
+      "SET FOREIGN_KEY_CHECKS=0;",
+      ...schema.seed.inserts.map(x => x.statement || x),
+      "SET FOREIGN_KEY_CHECKS=1;"
+    ].join("\n") + "\n";
+
+    fs.writeFileSync(path.join(outDirAbs, "seed.sql"), seedSql, "utf8");
+  }
+
+
   // hello.hbs render
   const tplPath = path.resolve(__dirname, "../templates/hello.hbs");
   if (fs.existsSync(tplPath)) {

@@ -6,34 +6,26 @@ async function main() {
     host: process.env.DB_HOST || "localhost",
     user: process.env.DB_USER || "root",
     password: process.env.DB_PASS || "",
-    database: process.env.DB_NAME || "diaknyilvantartas",
+    database: process.env.DB_NAME || "teszt_halado",
     port: Number(process.env.DB_PORT || 3306),
   });
-
-  // Egyszerű ellenőrzések
-  const [rows] = await conn.query("SELECT COUNT(*) AS db FROM hallgato");
-  console.log("Hallgatók száma:", rows[0].db);
 
   const [ver] = await conn.query("SELECT VERSION() AS version");
   console.log("MySQL verzió:", ver[0].version);
 
-  // Extra „health check” lekérdezések
-  const [bySzak] = await conn.query(`
-    SELECT szak, COUNT(*) AS db
-    FROM hallgato
-    GROUP BY szak
-    ORDER BY db DESC
-  `);
-  console.log("Hallgatók szakok szerint:", bySzak);
+  const [tables] = await conn.query("SHOW TABLES");
+  console.log("Táblák:", tables);
 
-  const [jegyHist] = await conn.query(`
-    SELECT b.jegy, COUNT(*) AS db
-    FROM beiratkozas b
-    WHERE b.jegy IS NOT NULL
-    GROUP BY b.jegy
-    ORDER BY b.jegy
+  const [rows] = await conn.query("SELECT COUNT(*) AS db FROM ugyfel");
+  console.log("Ügyfelek száma:", rows[0].db);
+
+  const [byCity] = await conn.query(`
+    SELECT varos, COUNT(*) AS db
+    FROM ugyfel
+    GROUP BY varos
+    ORDER BY db DESC, varos
   `);
-  console.log("Jegy eloszlás:", jegyHist);
+  console.log("Ügyfelek városonként:", byCity);
 
   await conn.end();
 }

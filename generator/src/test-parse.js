@@ -9,7 +9,7 @@ function read(sqlFile) {
 
 function assert(cond, msg) {
   if (!cond) {
-    console.error("❌", msg);
+    console.error("valami nem jó!", msg);
     process.exit(1);
   }
 }
@@ -42,5 +42,5 @@ function assert(cond, msg) {
   const note = E.columns.find(c => c.name === "note");
   assert(note && note.comment === "megjegyzes", "E.note: COMMENT kiolvasva");
 
-  console.log("✅ test-parse: minden OK");
+  console.log("test-parse: minden OK");
 })();

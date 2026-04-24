@@ -6,11 +6,11 @@
   "type": "commonjs",
   "scripts": {
     "clean": "powershell -NoLogo -NoProfile -Command \"Remove-Item -Recurse -Force .\\out -ErrorAction SilentlyContinue; New-Item -ItemType Directory .\\out | Out-Null\"",
-    "parse:dump": "node .\\src\\generate.js ..\\db\\diaknyilvantartas.sql .\\out",
+    "parse:dump": "node .\\src\\generate.js ..\\db\\teszt_halado.sql .\\out",
     "gen:backend": "node .\\src\\generate-backend.js .\\out\\schema.json .\\backend",
     "start:backend": "node -r dotenv/config ./backend/app.js",
     "gen:backend:local": "node .\\src\\generate-backend.js .\\out\\schema.json .\\out\\backend --orm=sequelize --with-routes --with-openapi --with-seeds",
-    "gen:backend:app":   "node .\\src\\generate-backend.js .\\out\\schema.json ..\\generated-app --orm=sequelize --with-routes --with-openapi --with-seeds",
+    "gen:backend:app": "node .\\src\\generate-backend.js .\\out\\schema.json ..\\generated-app --orm=sequelize --with-routes --with-openapi --with-seeds",
     "db:ping": "node .\\src\\test-mysql2.js",
     "introspect": "node .\\src\\introspect.js",
     "test:parser": "node .\\src\\test-parse.js"

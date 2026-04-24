@@ -14,7 +14,7 @@ function groupPush(map, key, v){ if(!map.has(key)) map.set(key,[]); map.get(key)
   const DB_NAME = process.env.DB_NAME || "diaknyilvantartas"; 
   const DB_PORT = Number(process.env.DB_PORT || 3306);
 
-  if(!DB_NAME){ console.error("❌ .env DB_NAME hiányzik"); process.exit(1); }
+  if(!DB_NAME){ console.error(" .env DB_NAME hiányzik"); process.exit(1); }
 
   const outDir = path.resolve(process.cwd(), "./out");
   ensureDir(outDir);

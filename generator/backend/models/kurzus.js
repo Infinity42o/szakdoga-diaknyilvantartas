@@ -4,54 +4,59 @@ module.exports = (sequelize, DataTypes) => {
     id: {
   type: DataTypes.INTEGER,
   primaryKey: true,
+  autoIncrement: true,
+  allowNull: false,
 },
-tantargy_id: {
+oktato_id: {
   type: DataTypes.INTEGER,
+  allowNull: false,
 },
-tanar_id: {
-  type: DataTypes.INTEGER,
+kod: {
+  type: DataTypes.STRING,
+  allowNull: false,
+},
+nev: {
+  type: DataTypes.STRING,
+  allowNull: false,
 },
 felev: {
-  type: DataTypes.STRING(16),
+  type: DataTypes.STRING,
+  allowNull: false,
+},
+kredit: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+  defaultValue: 5,
 },
 tipus: {
   type: DataTypes.ENUM('eloadas', 'gyakorlat', 'labor'),
-  defaultValue: "eloadas",
+  allowNull: false,
+  defaultValue: 'eloadas',
 },
-kapacitas: {
-  type: DataTypes.SMALLINT,
-  defaultValue: 100,
-},
-terem: {
-  type: DataTypes.STRING(32),
+max_letszam: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
+  defaultValue: 30,
 }
   }, {
     tableName: 'kurzus',
-    timestamps: false, indexes: [
-      { name: "ix_kurzus_tantargy", fields: ["tantargy_id"] },
-      { name: "ix_kurzus_tanar", fields: ["tanar_id"] }
+    timestamps: false
+  }
+  ,{
+    indexes: [
+      { name: "idx_kurzus_oktato", fields: ["oktato_id"] }
     ]
   });
 
   Kurzus.associate = (models) => {
-    // FK fk_kurzus_tanar (tanar_id -> tanar.id)
-models['kurzus'].belongsTo(models['tanar'], {
-  as: 'tanar',
-  foreignKey: 'tanar_id'
+    // FK fk_kurzus_oktato (oktato_id -> oktato.id)
+models['kurzus'].belongsTo(models['oktato'], {
+  as: 'oktato',
+  foreignKey: 'oktato_id'
 });
-models['tanar'].hasMany(models['kurzus'], {
+models['oktato'].hasMany(models['kurzus'], {
   as: 'kurzusList',
-  foreignKey: 'tanar_id'
-});
-
-// FK fk_kurzus_tantargy (tantargy_id -> tantargy.id)
-models['kurzus'].belongsTo(models['tantargy'], {
-  as: 'tantargy',
-  foreignKey: 'tantargy_id'
-});
-models['tantargy'].hasMany(models['kurzus'], {
-  as: 'kurzusList',
-  foreignKey: 'tantargy_id'
+  foreignKey: 'oktato_id'
 });
   };
 

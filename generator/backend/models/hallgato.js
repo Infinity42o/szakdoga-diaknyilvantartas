@@ -4,27 +4,29 @@ module.exports = (sequelize, DataTypes) => {
     id: {
   type: DataTypes.INTEGER,
   primaryKey: true,
-},
-neptun: {
-  type: DataTypes.STRING(6),
+  autoIncrement: true,
+  allowNull: false,
 },
 nev: {
-  type: DataTypes.STRING(120),
-},
-nem: {
-  type: DataTypes.ENUM('no', 'ferfi', 'egyeb'),
-},
-szak: {
-  type: DataTypes.STRING(80),
-},
-evfolyam: {
-  type: DataTypes.SMALLINT,
-},
-szuldatum: {
-  type: DataTypes.DATEONLY,
+  type: DataTypes.STRING,
+  allowNull: false,
 },
 email: {
-  type: DataTypes.STRING(120),
+  type: DataTypes.STRING,
+  allowNull: false,
+},
+szak: {
+  type: DataTypes.STRING,
+  allowNull: false,
+},
+aktiv: {
+  type: DataTypes.BOOLEAN,
+  allowNull: false,
+  defaultValue: 1,
+},
+felvetel_eve: {
+  type: DataTypes.INTEGER,
+  allowNull: false,
 }
   }, {
     tableName: 'hallgato',
