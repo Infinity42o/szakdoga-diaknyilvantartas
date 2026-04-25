@@ -1,0 +1,522 @@
+{
+  "database": null,
+  "tables": [
+    {
+      "name": "beiratkozas",
+      "columns": [
+        {
+          "name": "hallgato_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kurzus_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "felvet_datum",
+          "type": "datetime",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "current_timestamp()",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "jegy",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "hallgato_id",
+        "kurzus_id"
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "hallgato_id"
+          ],
+          "references": {
+            "table": "hallgato",
+            "columns": [
+              "id"
+            ]
+          }
+        },
+        {
+          "columns": [
+            "kurzus_id"
+          ],
+          "references": {
+            "table": "kurzus",
+            "columns": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_beiratkozas_kurzus",
+          "columns": [
+            "kurzus_id"
+          ],
+          "unique": false
+        }
+      ],
+      "seed": {
+        "inserts": [
+          "INSERT INTO `beiratkozas` (`hallgato_id`, `kurzus_id`, `felvet_datum`, `jegy`) VALUES\r\n(1, 1, '2024-09-10 10:00:00', 4),\r\n(1, 11, '2025-02-13 10:00:00', NULL),\r\n(2, 1, '2024-09-11 11:30:00', 3),\r\n(2, 11, '2025-02-13 10:05:00', NULL),\r\n(3, 1, '2024-09-12 09:15:00', 5),\r\n(3, 11, '2025-02-13 10:10:00', NULL),\r\n(4, 2, '2024-09-13 13:40:00', 5),\r\n(4, 3, '2025-02-10 12:30:00', NULL),\r\n(5, 3, '2025-02-10 12:10:00', NULL),\r\n(5, 12, '2025-02-20 08:30:00', 3),\r\n(6, 4, '2025-02-11 08:20:00', NULL),\r\n(7, 5, '2024-09-14 14:00:00', 2),\r\n(8, 7, '2024-09-15 15:30:00', 4),\r\n(9, 9, '2024-09-16 16:45:00', 5),\r\n(10, 10, '2025-02-12 09:00:00', NULL),\r\n(13, 1, '2025-09-09 08:30:00', 5),\r\n(13, 3, '2025-09-29 09:34:07', NULL);"
+        ]
+      }
+    },
+    {
+      "name": "hallgato",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": true,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "neptun",
+          "type": "char(6)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nem",
+          "type": "enum('no','ferfi','egyeb')",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": [
+            "no",
+            "ferfi",
+            "egyeb"
+          ],
+          "comment": null
+        },
+        {
+          "name": "szak",
+          "type": "varchar(80)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "evfolyam",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "szuldatum",
+          "type": "date",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "neptun",
+          "columns": [
+            "neptun"
+          ]
+        },
+        {
+          "name": "uq_hallgato_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": [],
+      "seed": {
+        "inserts": [
+          "INSERT INTO `hallgato` (`id`, `neptun`, `nev`, `nem`, `szak`, `evfolyam`, `szuldatum`, `email`) VALUES\r\n(1, 'ABC123', 'Kiss Balázs', 'ferfi', 'Programtervező informatikus', 1, '2004-05-17', 'balazs.kiss@uni.hu'),\r\n(2, 'DEF456', 'Tóth Eszter', 'no', 'Programtervező informatikus', 2, '2003-11-02', 'eszter.toth@uni.hu'),\r\n(3, 'GHI789', 'Szabó Gábor', 'ferfi', 'Gazdaságinformatikus', 1, '2004-08-21', 'gabor.szabo@uni.hu'),\r\n(4, 'JKL012', 'Varga Réka', 'no', 'Programtervező informatikus', 3, '2002-12-05', 'reka.varga@uni.hu'),\r\n(5, 'MNO345', 'Horváth Ádám', 'ferfi', 'Gazdaságinformatikus', 2, '2003-04-09', 'adam.horvath@uni.hu'),\r\n(6, 'PQR678', 'Nagy Dóra', 'no', 'Programtervező informatikus', 1, '2004-07-14', 'dora.nagy@uni.hu'),\r\n(7, 'STU901', 'Farkas Máté', 'ferfi', 'Mérnökinformatikus', 2, '2003-03-30', 'mate.farkas@uni.hu'),\r\n(8, 'VWX234', 'Kovács Lili', 'no', 'Mérnökinformatikus', 1, '2004-01-22', 'lili.kovacs@uni.hu'),\r\n(9, 'YZA567', 'Molnár Zsolt', 'ferfi', 'Programtervező informatikus', 3, '2002-09-11', 'zsolt.molnar@uni.hu'),\r\n(10, 'BCD890', 'Takács Hanna', 'no', 'Gazdaságinformatikus', 2, '2003-06-06', 'hanna.takacs@uni.hu'),\r\n(13, 'XYZ999', 'Teszt Elek', 'ferfi', 'Programtervező informatikus', 1, '2004-10-10', 'teszt.elek@uni.hu');"
+        ]
+      }
+    },
+    {
+      "name": "kurzus",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": true,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tantargy_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tanar_id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "felev",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tipus",
+          "type": "enum('eloadas','gyakorlat','labor')",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "eloadas",
+          "onUpdate": null,
+          "enumValues": [
+            "eloadas",
+            "gyakorlat",
+            "labor"
+          ],
+          "comment": null
+        },
+        {
+          "name": "kapacitas",
+          "type": "smallint(5) UNSIGNED",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "100",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "terem",
+          "type": "varchar(32)",
+          "allowNull": true,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "NULL",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [
+        {
+          "columns": [
+            "tanar_id"
+          ],
+          "references": {
+            "table": "tanar",
+            "columns": [
+              "id"
+            ]
+          }
+        },
+        {
+          "columns": [
+            "tantargy_id"
+          ],
+          "references": {
+            "table": "tantargy",
+            "columns": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "uniqueKeys": [],
+      "indexes": [
+        {
+          "name": "ix_kurzus_tantargy",
+          "columns": [
+            "tantargy_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "ix_kurzus_tanar",
+          "columns": [
+            "tanar_id"
+          ],
+          "unique": false
+        }
+      ],
+      "seed": {
+        "inserts": [
+          "INSERT INTO `kurzus` (`id`, `tantargy_id`, `tanar_id`, `felev`, `tipus`, `kapacitas`, `terem`) VALUES\r\n(1, 1, 1, '2024-25-1', 'eloadas', 200, 'A1'),\r\n(2, 1, 4, '2024-25-1', 'gyakorlat', 30, 'B204'),\r\n(3, 2, 3, '2024-25-2', 'eloadas', 180, 'A2'),\r\n(4, 2, 4, '2024-25-2', 'gyakorlat', 30, 'B205'),\r\n(5, 3, 2, '2024-25-1', 'eloadas', 150, 'C1'),\r\n(6, 4, 1, '2024-25-2', 'eloadas', 120, 'C2'),\r\n(7, 5, 2, '2024-25-1', 'eloadas', 120, 'D1'),\r\n(8, 6, 2, '2024-25-2', 'eloadas', 120, 'D2'),\r\n(9, 7, 5, '2024-25-1', 'eloadas', 100, 'E1'),\r\n(10, 8, 1, '2024-25-2', 'eloadas', 150, 'LAB1'),\r\n(11, 8, 4, '2024-25-2', 'labor', 24, 'LAB2'),\r\n(12, 3, 2, '2024-25-2', 'gyakorlat', 30, 'C103');"
+        ]
+      }
+    },
+    {
+      "name": "tanar",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": true,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "tanszek",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "email",
+          "type": "varchar(120)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tanar_email",
+          "columns": [
+            "email"
+          ]
+        }
+      ],
+      "indexes": [],
+      "seed": {
+        "inserts": [
+          "INSERT INTO `tanar` (`id`, `nev`, `tanszek`, `email`) VALUES\r\n(1, 'Dr. Kovács Péter', 'Informatika Tanszék', 'peter.kovacs@uni.hu'),\r\n(2, 'Dr. Szabó Anna', 'Matematika Tanszék', 'anna.szabo@uni.hu'),\r\n(3, 'Dr. Tóth László', 'Informatika Tanszék', 'laszlo.toth@uni.hu'),\r\n(4, 'Dr. Nagy Júlia', 'Informatika Tanszék', 'julia.nagy@uni.hu'),\r\n(5, 'Dr. Varga Márton', 'Fizika Tanszék', 'marton.varga@uni.hu');"
+        ]
+      }
+    },
+    {
+      "name": "tantargy",
+      "columns": [
+        {
+          "name": "id",
+          "type": "int(10) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": true,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kod",
+          "type": "varchar(16)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "nev",
+          "type": "varchar(160)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "kredit",
+          "type": "tinyint(3) UNSIGNED",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": null,
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        },
+        {
+          "name": "aktiv",
+          "type": "tinyint(1)",
+          "allowNull": false,
+          "autoIncrement": false,
+          "unique": false,
+          "default": "1",
+          "onUpdate": null,
+          "enumValues": null,
+          "comment": null
+        }
+      ],
+      "primaryKey": [
+        "id"
+      ],
+      "foreignKeys": [],
+      "uniqueKeys": [
+        {
+          "name": "uq_tantargy_kod",
+          "columns": [
+            "kod"
+          ]
+        }
+      ],
+      "indexes": [],
+      "seed": {
+        "inserts": [
+          "INSERT INTO `tantargy` (`id`, `kod`, `nev`, `kredit`, `aktiv`) VALUES\r\n(1, 'PROG1', 'Programozás I.', 5, 1),\r\n(2, 'PROG2', 'Programozás II.', 5, 1),\r\n(3, 'ADT1', 'Adatbázisok I.', 4, 1),\r\n(4, 'ADT2', 'Adatbázisok II.', 5, 1),\r\n(5, 'MATH1', 'Analízis I.', 4, 1),\r\n(6, 'MATH2', 'Diszkrét matematika', 4, 1),\r\n(7, 'STAT1', 'Statisztika alapok', 3, 1),\r\n(8, 'WEB1', 'Webfejlesztés I.', 5, 1);"
+        ]
+      }
+    }
+  ],
+  "seed": {
+    "inserts": [
+      {
+        "table": "beiratkozas",
+        "statement": "INSERT INTO `beiratkozas` (`hallgato_id`, `kurzus_id`, `felvet_datum`, `jegy`) VALUES\r\n(1, 1, '2024-09-10 10:00:00', 4),\r\n(1, 11, '2025-02-13 10:00:00', NULL),\r\n(2, 1, '2024-09-11 11:30:00', 3),\r\n(2, 11, '2025-02-13 10:05:00', NULL),\r\n(3, 1, '2024-09-12 09:15:00', 5),\r\n(3, 11, '2025-02-13 10:10:00', NULL),\r\n(4, 2, '2024-09-13 13:40:00', 5),\r\n(4, 3, '2025-02-10 12:30:00', NULL),\r\n(5, 3, '2025-02-10 12:10:00', NULL),\r\n(5, 12, '2025-02-20 08:30:00', 3),\r\n(6, 4, '2025-02-11 08:20:00', NULL),\r\n(7, 5, '2024-09-14 14:00:00', 2),\r\n(8, 7, '2024-09-15 15:30:00', 4),\r\n(9, 9, '2024-09-16 16:45:00', 5),\r\n(10, 10, '2025-02-12 09:00:00', NULL),\r\n(13, 1, '2025-09-09 08:30:00', 5),\r\n(13, 3, '2025-09-29 09:34:07', NULL);"
+      },
+      {
+        "table": "hallgato",
+        "statement": "INSERT INTO `hallgato` (`id`, `neptun`, `nev`, `nem`, `szak`, `evfolyam`, `szuldatum`, `email`) VALUES\r\n(1, 'ABC123', 'Kiss Balázs', 'ferfi', 'Programtervező informatikus', 1, '2004-05-17', 'balazs.kiss@uni.hu'),\r\n(2, 'DEF456', 'Tóth Eszter', 'no', 'Programtervező informatikus', 2, '2003-11-02', 'eszter.toth@uni.hu'),\r\n(3, 'GHI789', 'Szabó Gábor', 'ferfi', 'Gazdaságinformatikus', 1, '2004-08-21', 'gabor.szabo@uni.hu'),\r\n(4, 'JKL012', 'Varga Réka', 'no', 'Programtervező informatikus', 3, '2002-12-05', 'reka.varga@uni.hu'),\r\n(5, 'MNO345', 'Horváth Ádám', 'ferfi', 'Gazdaságinformatikus', 2, '2003-04-09', 'adam.horvath@uni.hu'),\r\n(6, 'PQR678', 'Nagy Dóra', 'no', 'Programtervező informatikus', 1, '2004-07-14', 'dora.nagy@uni.hu'),\r\n(7, 'STU901', 'Farkas Máté', 'ferfi', 'Mérnökinformatikus', 2, '2003-03-30', 'mate.farkas@uni.hu'),\r\n(8, 'VWX234', 'Kovács Lili', 'no', 'Mérnökinformatikus', 1, '2004-01-22', 'lili.kovacs@uni.hu'),\r\n(9, 'YZA567', 'Molnár Zsolt', 'ferfi', 'Programtervező informatikus', 3, '2002-09-11', 'zsolt.molnar@uni.hu'),\r\n(10, 'BCD890', 'Takács Hanna', 'no', 'Gazdaságinformatikus', 2, '2003-06-06', 'hanna.takacs@uni.hu'),\r\n(13, 'XYZ999', 'Teszt Elek', 'ferfi', 'Programtervező informatikus', 1, '2004-10-10', 'teszt.elek@uni.hu');"
+      },
+      {
+        "table": "kurzus",
+        "statement": "INSERT INTO `kurzus` (`id`, `tantargy_id`, `tanar_id`, `felev`, `tipus`, `kapacitas`, `terem`) VALUES\r\n(1, 1, 1, '2024-25-1', 'eloadas', 200, 'A1'),\r\n(2, 1, 4, '2024-25-1', 'gyakorlat', 30, 'B204'),\r\n(3, 2, 3, '2024-25-2', 'eloadas', 180, 'A2'),\r\n(4, 2, 4, '2024-25-2', 'gyakorlat', 30, 'B205'),\r\n(5, 3, 2, '2024-25-1', 'eloadas', 150, 'C1'),\r\n(6, 4, 1, '2024-25-2', 'eloadas', 120, 'C2'),\r\n(7, 5, 2, '2024-25-1', 'eloadas', 120, 'D1'),\r\n(8, 6, 2, '2024-25-2', 'eloadas', 120, 'D2'),\r\n(9, 7, 5, '2024-25-1', 'eloadas', 100, 'E1'),\r\n(10, 8, 1, '2024-25-2', 'eloadas', 150, 'LAB1'),\r\n(11, 8, 4, '2024-25-2', 'labor', 24, 'LAB2'),\r\n(12, 3, 2, '2024-25-2', 'gyakorlat', 30, 'C103');"
+      },
+      {
+        "table": "tanar",
+        "statement": "INSERT INTO `tanar` (`id`, `nev`, `tanszek`, `email`) VALUES\r\n(1, 'Dr. Kovács Péter', 'Informatika Tanszék', 'peter.kovacs@uni.hu'),\r\n(2, 'Dr. Szabó Anna', 'Matematika Tanszék', 'anna.szabo@uni.hu'),\r\n(3, 'Dr. Tóth László', 'Informatika Tanszék', 'laszlo.toth@uni.hu'),\r\n(4, 'Dr. Nagy Júlia', 'Informatika Tanszék', 'julia.nagy@uni.hu'),\r\n(5, 'Dr. Varga Márton', 'Fizika Tanszék', 'marton.varga@uni.hu');"
+      },
+      {
+        "table": "tantargy",
+        "statement": "INSERT INTO `tantargy` (`id`, `kod`, `nev`, `kredit`, `aktiv`) VALUES\r\n(1, 'PROG1', 'Programozás I.', 5, 1),\r\n(2, 'PROG2', 'Programozás II.', 5, 1),\r\n(3, 'ADT1', 'Adatbázisok I.', 4, 1),\r\n(4, 'ADT2', 'Adatbázisok II.', 5, 1),\r\n(5, 'MATH1', 'Analízis I.', 4, 1),\r\n(6, 'MATH2', 'Diszkrét matematika', 4, 1),\r\n(7, 'STAT1', 'Statisztika alapok', 3, 1),\r\n(8, 'WEB1', 'Webfejlesztés I.', 5, 1);"
+      }
+    ]
+  }
+}
