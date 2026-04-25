@@ -1,507 +1,887 @@
-# Szakdolgozat – MySQL → generált CRUD + statisztika alkalmazás
+# Szakdolgozat – MySQL/MariaDB SQL → generált CRUD + statisztika alkalmazás
 
-Ez a projekt egy **adatbázis‑alapú kódgenerátort** tartalmaz. A generátor egy **MySQL SQL script** (CREATE TABLE + INSERT INTO) alapján:
+Ez a projekt egy **SQL-alapú kódgenerátor**. Egy MySQL/MariaDB adatbázisscriptből előállít egy működő, generikus CRUD alkalmazást:
 
-- **felismeri a táblák szerkezetét** (oszlopok, PK/UK/INDEX, FK kapcsolatok),
-- **feldolgozza a kezdeti tartalmat** (INSERT INTO),
-- legenerál egy **Express + Sequelize** alapú backend API‑t (CRUD + meta + statisztika),
-- a mellékelt (generikus) frontend pedig a meta alapján **dinamikusan** kirajzolja a táblák kezelőfelületét és a statisztikát.
+- az SQL scriptből elkészíti a `schema.json` sémaleírást,
+- felismeri a táblákat, oszlopokat, elsődleges kulcsokat, egyedi kulcsokat, indexeket és idegen kulcsokat,
+- kezeli az `INSERT INTO` kezdeti adatokat,
+- legenerál egy **Express + Sequelize** backend API-t,
+- a generikus frontend pedig a `/api/meta` végpontból kapott metaadatok alapján rajzolja ki a táblákat, űrlapokat és statisztikákat.
 
-A cél: egy adott adatbázissémához gyorsan előállítható, működő CRUD alkalmazás grafikus felülettel és alap statisztikákkal.
-
----
-
-## Tartalom
-
-- [Követelmények](#követelmények)
-- [Gyors indítás (demo)](#gyors-indítás-demo)
-- [Generálás másik SQL scriptből](#generálás-másik-sql-scriptből)
-- [Kezdeti adatok (INSERT INTO)](#kezdeti-adatok-insert-into)
-- [API végpontok](#api-végpontok)
-- [Statisztika fül működése](#statisztika-fül-működése)
-- [Gyakori hibák](#gyakori-hibák)
+A projekt célja: bemutatni, hogy egy relációs adatbázis sémájából automatikusan előállítható egy működő CRUD + statisztika alkalmazás.
 
 ---
 
-## Követelmények
+## 1. Használt technológiák
 
-- **Node.js 18+** (ajánlott 20+)
-- **MySQL / MariaDB**
-- (Opcionális) MySQL kliens: Workbench / phpMyAdmin / CLI
+### Backend / generátor
+
+- Node.js
+- Express
+- Sequelize
+- mysql2
+- dotenv
+- cors
+- Handlebars
+
+### Frontend
+
+- Vite
+- Vanilla JavaScript
+- CSS
+- Chart.js
+
+### Adatbázis
+
+- XAMPP MariaDB / MySQL
+- MySQL Workbench vagy phpMyAdmin ellenőrzéshez
 
 ---
 
-## Gyors indítás (demo)
+## 2. Projektmappák
 
-A repo tartalmaz egy minta adatbázisscriptet: `db/diaknyilvantartas.sql`.
+Javasolt projektstruktúra:
 
-### 1) Adatbázis import
-
-Hozz létre egy adatbázist (pl. `diaknyilvantartas`), majd importáld a scriptet.
-
-### 2) Backend indítása
-
-```bash
-cd generator
-npm install
-
-# Állítsd be a DB kapcsolatot:
-# generator/.env (vagy másold a .env.example-t)
-
-npm run start:backend
+```text
+C:\projektek\szakdoga
+├── db
+│   ├── diaknyilvantartas.sql
+│   ├── 01_ugyfel_crud.sql
+│   ├── teszt-webshop.sql
+│   └── teszt_halado.sql
+│
+├── generator
+│   ├── src
+│   │   ├── generate.js
+│   │   ├── generate-backend.js
+│   │   ├── parseSql.js
+│   │   └── test-mysql2.js
+│   │
+│   ├── out
+│   │   ├── schema.json
+│   │   └── seed.sql
+│   │
+│   ├── backend
+│   │   ├── app.js
+│   │   ├── db
+│   │   ├── models
+│   │   └── routes
+│   │
+│   ├── .env
+│   └── package.json
+│
+└── frontend
+    ├── index.html
+    ├── src
+    │   ├── main.js
+    │   ├── stats.js
+    │   └── style.css
+    └── package.json
 ```
 
-A backend alapból: `http://localhost:3000`
+---
+
+## 3. Alapelv: SQL fájl + DB_NAME mindig párban jár
+
+Másik adatbázis generálásánál **mindig három dolognak kell összhangban lennie**:
+
+1. melyik SQL fájlt dolgozzuk fel,
+2. milyen néven van importálva az adatbázis MariaDB-ben,
+3. mi szerepel a `generator/.env` fájlban `DB_NAME` értékként.
+
+Példa:
+
+| SQL fájl | MariaDB adatbázis | `.env` DB_NAME |
+|---|---|---|
+| `db/diaknyilvantartas.sql` | `diaknyilvantartas` | `DB_NAME=diaknyilvantartas` |
+| `db/01_ugyfel_crud.sql` | `teszt_ugyfel_crud3` | `DB_NAME=teszt_ugyfel_crud3` |
+| `db/teszt-webshop.sql` | `teszt_webshop` | `DB_NAME=teszt_webshop` |
+| `db/teszt_halado.sql` | `teszt_kurzus_halado` | `DB_NAME=teszt_kurzus_halado` |
+
+Ha ezek nem egyeznek, akkor tipikus hiba lehet:
+
+- `Unknown database`
+- `Table ... doesn't exist`
+- `Unknown column ... in field list`
+- a frontend régi táblákat próbál lekérni
+
+---
+
+## 4. XAMPP / MariaDB indítása
+
+Indítsd el a XAMPP Control Panelt, majd indítsd el:
+
+```text
+Apache
+MySQL
+```
+
+PowerShell ellenőrzés:
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 3306
+```
+
+Jó eredmény:
+
+```text
+TcpTestSucceeded : True
+```
+
+---
+
+## 5. Adatbázis importálása
+
+### 5.1. Általános import séma
+
+Ha egy SQL fájlt adott adatbázisnéven szeretnénk használni, akkor:
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS ADATBAZIS_NEV; CREATE DATABASE ADATBAZIS_NEV CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D ADATBAZIS_NEV < "C:\projektek\szakdoga\db\FAJLNEV.sql""
+```
+
+Ez akkor is működik, ha az SQL fájlban nincs külön `USE adatbazis;` utasítás.
+
+### 5.2. Diáknyilvántartás importálása
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS diaknyilvantartas; CREATE DATABASE diaknyilvantartas CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D diaknyilvantartas < "C:\projektek\szakdoga\db\diaknyilvantartas.sql""
+```
 
 Ellenőrzés:
-- `GET http://localhost:3000/health`
 
-### 3) Frontend indítása
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D diaknyilvantartas -e "SHOW TABLES;"
+```
 
-<<<<<<< HEAD
-2. Adatbázis importálása
+Várt fontos táblák:
 
-A projekt gyökerében található:
+```text
+hallgato
+tanar
+tantargy
+kurzus
+beiratkozas
+```
 
-db/diaknyilvantartas.sql
+### 5.3. Webshop tesztadatbázis importálása
 
-2.1. phpMyAdmin (XAMPP) – ajánlott
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_webshop; CREATE DATABASE teszt_webshop CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_webshop < "C:\projektek\szakdoga\db\teszt-webshop.sql""
+```
 
-Indítsd a MySQL-t a XAMPP Control Panelben.
+### 5.4. Ügyfél CRUD tesztadatbázis importálása
 
-Böngészőben: http://localhost/phpmyadmin/.
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_ugyfel_crud3; CREATE DATABASE teszt_ugyfel_crud3 CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_ugyfel_crud3 < "C:\projektek\szakdoga\db\01_ugyfel_crud.sql""
+```
 
-Ha kell, hozz létre egy új adatbázist: diaknyilvantartas (utf8mb4_general_ci).
+### 5.5. Kurzus haladó tesztadatbázis importálása
 
-Válaszd ki az adatbázist → Import → tallózd be: db/diaknyilvantartas.sql → Go.
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_kurzus_halado; CREATE DATABASE teszt_kurzus_halado CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_kurzus_halado < "C:\projektek\szakdoga\db\teszt_halado.sql""
+```
 
-2.2. Ellenőrzés
+### 5.6. Összes adatbázis ellenőrzése
 
-phpMyAdmin vagy Workbench-ben:
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "SHOW DATABASES;"
+```
 
-USE diaknyilvantartas;
-SHOW TABLES;
+A projekt szempontjából ezeknek kell látszaniuk:
 
-SELECT COUNT(*) FROM hallgato;
-SELECT COUNT(*) FROM tanar;
-SELECT COUNT(*) FROM tantargy;
-SELECT COUNT(*) FROM kurzus;
-SELECT COUNT(*) FROM beiratkozas;
+```text
+diaknyilvantartas
+teszt_kurzus_halado
+teszt_ugyfel_crud3
+teszt_webshop
+```
 
-SELECT * FROM v_tantargy_atlag LIMIT 5;
-SELECT * FROM v_szak_hallgatoszam LIMIT 5;
-SELECT * FROM v_hallgato_kredit LIMIT 5;
+---
 
-3. Generátor + backend
+## 6. Generator `.env` beállítása
 
-A backend a generator/ mappán belül található, Node.js + Express + Sequelize alapokon.
+A backend a `generator/.env` fájlból olvassa ki az adatbázis-kapcsolatot.
 
-3.1. .env beállítása
+Példa:
 
-A generator/ könyvtárban:
-
-cd generator
-copy .env.example .env
-
-
-Nyisd meg a .env fájlt, és állítsd be a saját XAMPP/MySQL paramétereid szerint:
-
+```env
 PORT=3000
-DB_HOST=localhost
+DB_HOST=127.0.0.1
 DB_USER=root
 DB_PASS=
 DB_NAME=diaknyilvantartas
 DB_PORT=3306
-
-3.2. Csomagok telepítése
-cd C:\projektek\szakdoga\generator
-npm install
-
-3.3. Adatbázis-kapcsolat tesztelése
-npm run db:ping
-
-
-Ha minden rendben, kapsz összefoglalót a hallgatók számáról, jegy-eloszlásról stb.
-
-3.4. Backend generálása (Express + Sequelize)
-
-Ha módosítod a sémát, újra tudod generálni a backendet:
-
-npm run gen:backend
-
-
-Ekkor létrejön / frissül:
-
-generator/backend/app.js
-
-generator/backend/db/index.js
-
-generator/backend/models/*.js
-
-generator/backend/routes/*.js (CRUD)
-
-generator/backend/routes/stats.js (statisztikák)
-
-3.5. Backend indítása
-npm run start:backend
-
-
-Ha sikerült:
-
-Műkszik, API listening on port 3000
-
-
-Egészség-ellenőrzés:
-
-Invoke-RestMethod http://localhost:3000/health
-
-4. REST API áttekintés
-
-Alap URL: http://localhost:3000/api
-
-4.1. CRUD végpontok (automatikusan generált)
-
-Példa a hallgato táblára:
-
-GET /api/hallgato – lista (opcionálisan ?limit=&offset= és ?where= paraméterekkel)
-
-GET /api/hallgato/{id} – hallgató lekérése azonosító alapján
-
-POST /api/hallgato – új hallgató felvétele (JSON törzs)
-
-PUT /api/hallgato/{id} – meglévő hallgató módosítása
-
-DELETE /api/hallgato/{id} – hallgató törlése
-
-Hasonlóan működik: tanar, tantargy, kurzus, beiratkozas.
-
-4.2. Statisztikai végpontok
-
-GET /api/stats/grades
-Jegyek eloszlása (2–5):
-
-[
-  { "jegy": 2, "db": 1 },
-  { "jegy": 3, "db": 2 },
-  ...
-]
-
-
-GET /api/stats/by-szak
-Hallgatók száma szakonként:
-
-[
-  { "szak": "Programtervező informatikus", "db": 5 },
-  { "szak": "Gazdaságinformatikus", "db": 3 },
-  ...
-]
-
-
-GET /api/stats/credits-per-student
-Összesített kreditek hallgatónként:
-
-[
-  { "id": 3, "neptun": "GHI789", "nev": "Szabó Gábor", "ossz_kredit": 10 },
-  ...
-]
-
-5. Frontend (Vite + JS)
-
-A frontend egy egyszerű, generált webes felület, amely a backend REST API-t használja.
-
-5.1. Telepítés
-cd C:\projektek\szakdoga\diak-frontend
-npm install
-
-
-Ha Node-verzió hibát ad (Vite): frissíts Node-ot legalább 20.19+ vagy 22.12+ verzióra.
-
-5.2. Fejlesztői szerver indítása
-npm run dev
-
-
-A konzolban látod a címet, pl.:
-
-  VITE vX.X.X  ready in ...
-  ➜  Local:   http://127.0.0.1:5173/
-
-
-Böngészőben nyisd meg: http://127.0.0.1:5173/.
-
-5.3. Felhasználói felület – rövid leírás
-
-A jelenlegi frontend:
-
-Hallgatók listázása a /api/hallgato végpont alapján
-
-Egyszerű lista nézet, táblázatos formában:
-
-név, Neptun-kód, szak, évfolyam, e-mail
-
-Később bővíthető:
-
-új hallgató felvétele űrlappal
-
-szerkesztés/törlés gombok
-
-szűrés (szak, évfolyam, név)
-
-statisztikai diagramok megjelenítése (/api/stats/* végpontok alapján)
-
-6. Rendszerarchitektúra – röviden (dolgozat-vázlat)
-6.1. Logikai rétegek
-
-Adatbázis réteg
-
-MariaDB/MySQL adatbázis
-
-Táblák: hallgato, tanar, tantargy, kurzus, beiratkozas
-
-Nézetek: v_tantargy_atlag, v_szak_hallgatoszam, v_hallgato_kredit
-
-Integritási megkötések: PK, FK, UNIQUE, CHECK (verziótól függően)
-
-Generátor (backend codegen)
-
-Forrás: db/diaknyilvantartas.sql
-
-lépés: SQL → séma (out/schema.json)
-
-táblák, oszlopok, típusok, PK/FK/UNIQUE/index, ENUM-ok
-
-lépés: séma → Node.js backend
-
-Sequelize modellek (backend/models)
-
-Express routerek (backend/routes)
-
-Statisztika router (backend/routes/stats.js)
-
-DB inicializáció (backend/db/index.js)
-
-Express app (backend/app.js)
-
-Backend alkalmazás (REST API)
-
-Technológiák: Node.js, Express, Sequelize, mysql2, dotenv, cors
-
-JSON alapú REST interfész:
-
-CRUD műveletek minden fő entitásra
-
-statisztikai aggregációk (SQL GROUP BY, JOIN, nézetek)
-
-Konfiguráció: .env fájl (DB elérés, port)
-
-Frontend alkalmazás
-
-Technológiák: Vite, vanilla JavaScript, fetch API, egyszerű CSS
-
-Funkciók:
-
-hallgatók listázása
-
-alap interakció a backenddel (GET/POST/PUT/DELETE – bővíthető)
-
-statisztikák megjelenítése (következő lépés: Chart.js / Recharts)
-
-6.2. Kommunikációs minta
-
-Frontend → Backend: HTTP/HTTPS, JSON (REST API)
-
-Backend → Adatbázis: Sequelize ORM + mysql2 driver, TCP (3306)
-
-Generátor → Adatbázis / SQL fájl:
-
-introspect: élő DB-ből (npm run introspect)
-
-parse: SQL dump fájlból (npm run parse / npm run generate)
-
-7. Hasznos parancsok összefoglalva
-Projekt gyökér
-cd C:\projektek\szakdoga
-
-Generator / backend
-cd generator
-
-# csomagok
-npm install
-
-# DB kapcsolat teszt
-npm run db:ping
-
-# séma introspect (élő DB-ből)
-npm run introspect
-
-# backend generálás
-npm run gen:backend
-
-# backend indítás
-npm run start:backend
-
-Frontend
-cd diak-frontend
-=======
-```bash
-cd ../diak-frontend
->>>>>>> 1ae3726 (Frissített projektverzió)
-npm install
-npm run dev
 ```
 
-Frontend alapból: `http://localhost:5173`
+Másik adatbázis generálásakor a `DB_NAME` értékét át kell írni.
 
-> A frontend API címe jelenleg a `diak-frontend/src/main.js` fájlban van:
-> `const API_BASE = "http://localhost:3000/api";`
+Példa webshophoz:
+
+```env
+DB_NAME=teszt_webshop
+```
+
+Fontos: ha a backend már futott, a `.env` módosítása után a Node backendet újra kell indítani.
 
 ---
 
-## Generálás másik SQL scriptből
+## 7. Generator telepítése
 
-A generátor két lépésből áll:
+```powershell
+cd C:\projektek\szakdoga\generator
+npm install
+```
 
-1. **SQL → schema.json + seed.sql** (`generator/src/generate.js`)
-2. **schema.json → backend forráskód** (`generator/src/generate-backend.js`)
+Adatbázis-kapcsolat tesztelése:
 
-### 1) SQL feldolgozása (DDL + DML)
+```powershell
+npm run db:ping
+```
 
-```bash
-cd generator
-node src/generate.js <input.sql> [outDir]
+Megjegyzés: a `db:ping` teszt eredetileg tartalmazhatott konkrét próbakérdezést, például ügyfél táblára. Ha másik adatbázist használsz, és csak ez a próbakérdezés hibázik, de a `SHOW TABLES` jó, akkor maga a DB-kapcsolat működik.
 
-# Példa:
-node src/generate.js ../db/diaknyilvantartas.sql ./out
+---
+
+## 8. Generálási folyamat
+
+A generálás két fő lépésből áll:
+
+1. SQL fájl → `out/schema.json`
+2. `schema.json` → generált backend
+
+### 8.1. SQL → `schema.json`
+
+Példa diáknyilvántartáshoz:
+
+```powershell
+cd C:\projektek\szakdoga\generator
+npm run parse:dump -- ..\db\diaknyilvantartas.sql .\out
 ```
 
 Kimenet:
-- `out/schema.json` – a sémaleírás (táblák, oszlopok, kulcsok, FK-k)
-- `out/seed.sql` – a scriptben lévő INSERT INTO-kból összeállított "seed" (kezdeti adatok)
 
-### 2) Backend legenerálása
+```text
+generator/out/schema.json
+generator/out/seed.sql
+```
 
-```bash
-cd generator
-node src/generate-backend.js ./out/schema.json ./backend
+A `schema.json` tartalmazza:
 
-# vagy a meglévő npm script:
+- a táblák nevét,
+- oszlopokat,
+- típusokat,
+- `primaryKey` információt,
+- `autoIncrement` információt,
+- idegen kulcsokat,
+- `ENUM` értékeket,
+- statisztikához használható dimenziókat és metrikákat.
+
+phpMyAdmin dumpoknál az `AUTO_INCREMENT` gyakran nem a `CREATE TABLE` oszlopsorban van, hanem későbbi `ALTER TABLE ... MODIFY ... AUTO_INCREMENT` utasításban. A `generate.js` ezt is kezeli.
+
+Ellenőrzés diáknyilvántartásnál:
+
+```powershell
+node -e "const s=require('./out/schema.json'); console.log(s.tables.find(t=>(t.table||t.name)==='hallgato').columns.find(c=>c.name==='id'))"
+```
+
+Jó eredmény:
+
+```js
+autoIncrement: true
+```
+
+### 8.2. `schema.json` → generált backend
+
+```powershell
 npm run gen:backend
 ```
 
-A generált backend fő fájlja: `backend/app.js`.
+Ez létrehozza/frissíti:
 
-Indítás:
+```text
+generator/backend/app.js
+generator/backend/db/index.js
+generator/backend/models/*.js
+generator/backend/routes/*.js
+generator/backend/routes/meta.js
+generator/backend/routes/stats.js
+```
 
-```bash
-cd generator
+### 8.3. Backend indítása
+
+```powershell
 npm run start:backend
 ```
 
-> Megjegyzés: a backend a futási könyvtárból tölti be a `.env`‑et (`dotenv.config()`), ezért tipikusan a `generator/` mappából érdemes indítani.
+Jó indulás:
 
----
-
-## Kezdeti adatok (INSERT INTO)
-
-A feladatkiírás "kezdeti tartalom" része miatt a generátor **feldolgozza az INSERT INTO utasításokat is**:
-
-- a `generate.js` a bemeneti SQL‑ből kigyűjti az INSERT‑eket,
-- és létrehozza az `out/seed.sql` fájlt.
-
-**Fontos:** a generátor **nem futtat SQL-t** a DB‑n – csak kódot/scripteket állít elő.
-A kezdeti adatok betöltéséhez importáld az alábbiak egyikét:
-
-- **(egyszerű)** az eredeti `input.sql` fájlt (ha CREATE + INSERT egyben van), vagy
-- **(külön)** a CREATE TABLE részt, majd utána az `out/seed.sql`‑t.
-
----
-
-## API végpontok
-
-A generált backend minden táblához létrehoz egy CRUD route‑ot:
-
-- `GET    /api/<tabla>` – listázás (támogat `limit`, `offset`, `filters` paramétert)
-- `GET    /api/<tabla>/<pk>` – rekord lekérése PK alapján (kompozit PK is támogatott)
-- `POST   /api/<tabla>` – beszúrás
-- `PUT    /api/<tabla>/<pk>` – módosítás
-- `DELETE /api/<tabla>/<pk>` – törlés
-
-Meta és statisztika:
-
-- `GET /api/meta` – táblák + oszlop meta (dimenziók/metrikák, FK info)
-- `GET /api/stats/aggregate?table=...&groupBy=...&agg=...&field=...&excludeNull=1`
-
-A `stats/aggregate` támogatott aggregációk: `count`, `sum`, `avg`, `min`, `max`.
-
-> Biztonság: a stat endpoint táblákat/oszlopokat `describeTable` alapján validál, az azonosítókat backtick-kel idézi.
-
----
-
-## Statisztika fül működése
-
-A statisztika felület generikus (nem kézzel táblánként "drótozott"):
-
-- a táblák / oszlopok listája a `GET /api/meta` válaszból jön,
-- **dimenzió** = csoportosító mező (pl. szak / típus / FK mező)
-- **metrika** = numerikus mező, amin `sum/avg/min/max` fut (pl. jegy)
-
-Min/max/avg/sum csak akkor engedélyezett, ha az adott táblához van numerikus metrika.
-
-FK csoportosítás esetén a UI megpróbálja "szépen" megjeleníteni a csoportokat:
-
-- pl. `hallgato_id` → `Varga Réka (#4)`
-- a `(#id)` rész ki‑/bekapcsolható az **„ID megjelenítése”** opcióval.
-
-Dátum mezők alapból rejtve vannak, mert könnyen túl sok kategóriát eredményeznek; a **„Dátum mezők”** checkbox-szal visszakapcsolhatók.
-
----
-
-## Elérhető npm scriptek (generator)
-
-A `generator/package.json` tartalmazza a legfontosabb lépéseket:
-
-- `npm run parse:dump` – a demo SQL-ből (`../db/diaknyilvantartas.sql`) elkészíti az `out/schema.json` + `out/seed.sql` fájlokat
-- `npm run gen:backend` – az `out/schema.json` alapján legenerálja a backendet a `generator/backend/` mappába
-- `npm run gen:backend:app` – ugyanaz, de a kimenet a `generated-app/backend/` mappába kerül (ha ezt a struktúrát szeretnéd)
-- `npm run start:backend` – elindítja a generált backendet (`node -r dotenv/config ./backend/app.js`)
-
----
-
-## Gyakori hibák
-
-### "Nem találom a sémát: .../out/schema.json"
-
-- Előbb futtasd a parser lépést:
-
-```bash
-cd generator
-npm run parse:dump
+```text
+Megy, API listening on port 3000
 ```
 
-vagy:
+Backend ellenőrzés:
 
-```bash
-node src/generate.js <input.sql> ./out
+```powershell
+Invoke-RestMethod http://localhost:3000/health
 ```
 
-### DB kapcsolat hiba (backend)
+Vagy böngészőben:
 
-- Ellenőrizd a `generator/.env` beállításait:
-  - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`
-- Győződj meg róla, hogy az adatbázis létezik és a táblák importálva vannak.
+```text
+http://localhost:3000/health
+```
 
-### Statisztika "furcsa" címkék FK-nál
+---
 
-A címkefeloldás heurisztikával választ "név" jellegű mezőt (pl. `nev`, `name`, `megnevezes`, stb.).
-Ha egy hivatkozott táblában több jó jelölt van (pl. kurzusnál "felev" vs. "tantargy"), akkor előfordulhat, hogy nem azt választja, amit te vársz.
-Ilyenkor:
+## 9. Frontend indítása
 
-- kapcsold be az **„ID megjelenítése”** opciót (mindig egyértelmű marad),
-- vagy módosítsd a preferált mezőnevek listáját a `diak-frontend/src/stats.js` fájlban (`pickLabelFieldForTable`).
+Új PowerShell ablakban:
 
-## Miért generikus?
+```powershell
+cd C:\projektek\szakdoga\frontend
+npm install
+npm run dev
+```
 
-Az alkalmazás nem egy konkrét adatbázisra van „rádrótozva”: a generátor a bemeneti MySQL SQL scriptből előállított `schema.json` alapján dolgozik.  
-Minden táblához automatikusan létrejön a Sequelize modell és a hozzá tartozó CRUD route, így a backend végpontok a séma változásával együtt újragenerálhatók.  
-A frontend nem tartalmaz táblaspecifikus kódot: a `GET /api/meta` végpontból kapott metaadatok alapján építi fel a táblalistát, űrlapokat és listázó nézeteket.  
-A statisztika oldal szintén meta-driven: a táblát/dimenziót/metrikát a meta alapján kínálja fel, a lekérdezést pedig a generikus `GET /api/stats/aggregate` végpont szolgálja ki.  
-Ennek eredménye, hogy másik adatbázis használatához jellemzően elég új SQL dumpot adni a generátornak és újragenerálni a backendet; a frontend változtatás nélkül alkalmazkodik.  
+A Vite általában ezt adja:
+
+```text
+http://localhost:5173
+```
+
+A frontend API hívásai a backend felé mennek:
+
+```text
+http://localhost:3000/api
+```
+
+---
+
+## 10. Teljes használati sorrend egy adatbázisnál
+
+Példa: `diaknyilvantartas`.
+
+### 10.1. MySQL indítása
+
+XAMPP-ben MySQL legyen elindítva.
+
+### 10.2. Adatbázis import
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS diaknyilvantartas; CREATE DATABASE diaknyilvantartas CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D diaknyilvantartas < "C:\projektek\szakdoga\db\diaknyilvantartas.sql""
+```
+
+### 10.3. `.env` beállítás
+
+`generator/.env`:
+
+```env
+DB_NAME=diaknyilvantartas
+```
+
+### 10.4. Parser futtatás
+
+```powershell
+cd C:\projektek\szakdoga\generator
+npm run parse:dump -- ..\db\diaknyilvantartas.sql .\out
+```
+
+### 10.5. Backend generálás
+
+```powershell
+npm run gen:backend
+```
+
+### 10.6. Backend indítás
+
+```powershell
+npm run start:backend
+```
+
+### 10.7. Frontend indítás
+
+Másik PowerShell ablakban:
+
+```powershell
+cd C:\projektek\szakdoga\frontend
+npm run dev
+```
+
+Böngésző:
+
+```text
+http://localhost:5173
+```
+
+---
+
+## 11. Másik adatbázis generálása
+
+Ez a legfontosabb rész, ha ugyanazzal a rendszerrel másik SQL adatbázist akarunk kipróbálni.
+
+### 11.1. Lépések röviden
+
+Másik adatbázisra váltáskor mindig ezt kell csinálni:
+
+1. importáld az új SQL-t MariaDB-be,
+2. írd át a `generator/.env` fájlban a `DB_NAME` értéket,
+3. futtasd a parsert az új SQL fájlra,
+4. generáld újra a backendet,
+5. indítsd újra a backendet,
+6. frissítsd a frontendet a böngészőben.
+
+### 11.2. Példa: webshop generálása
+
+#### 1. Import
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_webshop; CREATE DATABASE teszt_webshop CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_webshop < "C:\projektek\szakdoga\db\teszt-webshop.sql""
+```
+
+#### 2. `.env`
+
+```env
+DB_NAME=teszt_webshop
+```
+
+#### 3. Parser
+
+```powershell
+cd C:\projektek\szakdoga\generator
+npm run parse:dump -- ..\db\teszt-webshop.sql .\out
+```
+
+#### 4. Backend generálás
+
+```powershell
+npm run gen:backend
+```
+
+#### 5. Backend újraindítás
+
+Ha fut régi Node backend:
+
+```powershell
+taskkill /F /IM node.exe
+```
+
+Utána:
+
+```powershell
+npm run start:backend
+```
+
+#### 6. Frontend frissítés
+
+A frontend általában maradhat futva:
+
+```powershell
+cd C:\projektek\szakdoga\frontend
+npm run dev
+```
+
+Böngészőben frissítsd az oldalt:
+
+```text
+http://localhost:5173
+```
+
+### 11.3. Példa: ügyfél CRUD generálása
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_ugyfel_crud3; CREATE DATABASE teszt_ugyfel_crud3 CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_ugyfel_crud3 < "C:\projektek\szakdoga\db\01_ugyfel_crud.sql""
+```
+
+`generator/.env`:
+
+```env
+DB_NAME=teszt_ugyfel_crud3
+```
+
+Generálás:
+
+```powershell
+cd C:\projektek\szakdoga\generator
+npm run parse:dump -- ..\db\01_ugyfel_crud.sql .\out
+npm run gen:backend
+npm run start:backend
+```
+
+### 11.4. Példa: kurzus haladó generálása
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "DROP DATABASE IF EXISTS teszt_kurzus_halado; CREATE DATABASE teszt_kurzus_halado CHARACTER SET utf8mb4 COLLATE utf8mb4_hungarian_ci;"
+cmd /c ""C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -D teszt_kurzus_halado < "C:\projektek\szakdoga\db\teszt_halado.sql""
+```
+
+`generator/.env`:
+
+```env
+DB_NAME=teszt_kurzus_halado
+```
+
+Generálás:
+
+```powershell
+cd C:\projektek\szakdoga\generator
+npm run parse:dump -- ..\db\teszt_halado.sql .\out
+npm run gen:backend
+npm run start:backend
+```
+
+### 11.5. Fontos: a backend mindig az aktuális `schema.json` alapján generálódik
+
+Ha átírod a `.env` fájlt, de nem futtatod újra ezt:
+
+```powershell
+npm run parse:dump -- ..\db\megfelelo.sql .\out
+npm run gen:backend
+```
+
+akkor a backend még a régi táblákra fog route-okat és modelleket tartalmazni.
+
+Ez okozhat ilyen hibákat:
+
+```text
+Table ... doesn't exist
+Unknown column ... in field list
+```
+
+---
+
+## 12. REST API végpontok
+
+A generált backend minden táblához automatikusan létrehoz CRUD végpontokat.
+
+Példa `hallgato` táblára:
+
+| Művelet | Végpont |
+|---|---|
+| Lista | `GET /api/hallgato` |
+| Egy rekord | `GET /api/hallgato/:id` |
+| Új rekord | `POST /api/hallgato` |
+| Módosítás | `PUT /api/hallgato/:id` |
+| Törlés | `DELETE /api/hallgato/:id` |
+
+Kompozit kulcsos táblánál a route több paramétert használ.
+
+Példa:
+
+```text
+/api/beiratkozas/:hallgato_id/:kurzus_id
+```
+
+### Meta végpont
+
+```text
+GET /api/meta
+```
+
+Ez adja vissza a frontendnek a táblák és mezők leírását.
+
+### Generikus statisztika végpont
+
+```text
+GET /api/stats/aggregate?table=...&groupBy=...&agg=...&field=...&excludeNull=1
+```
+
+Támogatott aggregációk:
+
+```text
+count
+sum
+avg
+min
+max
+```
+
+Példa:
+
+```text
+http://localhost:3000/api/stats/aggregate?table=hallgato&groupBy=szak&agg=count&excludeNull=1
+```
+
+---
+
+## 13. Frontend funkciók
+
+A frontend generikus, tehát nem egy konkrét adatbázisra van fixen ráírva.
+
+A `/api/meta` alapján:
+
+- létrehozza a táblák füleit,
+- listázza a rekordokat,
+- űrlapot épít új rekordhoz és szerkesztéshez,
+- FK mezőknél legördülőt próbál használni,
+- ENUM mezőknél legördülőt használ,
+- BOOLEAN mezőknél checkboxot használ,
+- ID / auto increment mezőket új rekordnál nem kell kézzel megadni,
+- a statisztika nézetben táblát, dimenziót, metrikát és aggregálást lehet választani.
+
+---
+
+## 14. Statisztika működése
+
+A statisztika oldal szintén metaadat-alapú.
+
+Fő működés:
+
+- a táblák és oszlopok listája a `/api/meta` végpontból jön,
+- dimenzió = csoportosító mező,
+- metrika = numerikus mező,
+- aggregáció = `count`, `sum`, `avg`, `min`, `max`,
+- a diagramot Chart.js rajzolja.
+
+FK csoportosítás esetén a frontend megpróbál emberibb címkét megjeleníteni.
+
+Példa:
+
+```text
+hallgato_id = 4
+```
+
+helyett:
+
+```text
+Varga Réka (#4)
+```
+
+Az ID megjelenítése a statisztika oldalon külön kapcsolható.
+
+---
+
+## 15. Gyakori hibák és megoldások
+
+### 15.1. `EADDRINUSE: address already in use :::3000`
+
+A 3000-es porton már fut egy Node backend.
+
+Megoldás:
+
+```powershell
+taskkill /F /IM node.exe
+npm run start:backend
+```
+
+### 15.2. `ECONNREFUSED 127.0.0.1:3306`
+
+A MySQL/MariaDB nem fut.
+
+Megoldás:
+
+- XAMPP Control Panelben indítsd el a MySQL-t,
+- ellenőrizd:
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 3306
+```
+
+### 15.3. `Unknown database`
+
+A `.env` fájlban olyan `DB_NAME` van, ami nincs létrehozva MariaDB-ben.
+
+Ellenőrzés:
+
+```powershell
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "SHOW DATABASES;"
+```
+
+### 15.4. `Table ... doesn't exist`
+
+A backend olyan táblát keres, ami nincs az aktuális adatbázisban.
+
+Leggyakoribb okok:
+
+- nem jó a `.env` `DB_NAME`,
+- rossz SQL fájlból készült a `schema.json`,
+- nem futott újra a `npm run gen:backend`,
+- régi backend fut még a háttérben.
+
+Megoldás:
+
+```powershell
+taskkill /F /IM node.exe
+npm run parse:dump -- ..\db\megfelelo.sql .\out
+npm run gen:backend
+npm run start:backend
+```
+
+### 15.5. `Unknown column ... in field list`
+
+A generált Sequelize model más oszlopokat tartalmaz, mint az aktuális adatbázis.
+
+Megoldás: ugyanaz, mint az előzőnél. A SQL fájl, a `schema.json`, a generált backend és a `.env` ugyanarra az adatbázisra mutasson.
+
+### 15.6. `hallgato.id cannot be null`
+
+Az `AUTO_INCREMENT` mező nem került át rendesen a `schema.json` → Sequelize model láncba.
+
+Ellenőrzés:
+
+```powershell
+node -e "const s=require('./out/schema.json'); console.log(s.tables.find(t=>(t.table||t.name)==='hallgato').columns.find(c=>c.name==='id'))"
+```
+
+Jó esetben:
+
+```js
+autoIncrement: true
+```
+
+Utána ellenőrizhető a generált model is:
+
+```powershell
+Get-Content .\backend\models\hallgato.js | Select-String -Pattern '"id":' -Context 0,10
+```
+
+Jó esetben az `id` alatt szerepel:
+
+```js
+autoIncrement: true,
+```
+
+### 15.7. `Table ... doesn't exist in engine`
+
+Ez XAMPP/MariaDB adatfájl-sérülésre utalhat.
+
+Biztonságos reset menete:
+
+1. XAMPP-ban állítsd le a MySQL-t.
+2. PowerShell:
+
+```powershell
+cd C:\xampp\mysql
+Rename-Item .\data .\data_broken
+Copy-Item .\backup .\data -Recurse
+```
+
+3. XAMPP-ban indítsd újra a MySQL-t.
+4. Importáld újra az SQL fájlokat.
+
+---
+
+## 16. Miért generikus a rendszer?
+
+A backend és a frontend nem egyetlen konkrét adatbázisra van kézzel ráírva.
+
+A folyamat:
+
+```text
+SQL fájl
+  ↓
+schema.json
+  ↓
+generált Sequelize modellek + Express route-ok
+  ↓
+/api/meta
+  ↓
+generikus frontend
+```
+
+Ezért másik adatbázis használatához jellemzően elég:
+
+1. új SQL fájlt importálni,
+2. `.env` DB_NAME-et átírni,
+3. `parse:dump` futtatása az új SQL-re,
+4. `gen:backend` futtatása,
+5. backend újraindítása,
+6. frontend frissítése.
+
+A frontendnek normál esetben nem kell táblaspecifikus módosítás, mert a táblalistát, mezőket, típusokat és kapcsolatok nagy részét a `/api/meta` alapján kapja meg.
+
+---
+
+## 17. Legfontosabb parancsok összefoglalva
+
+### Backend / generator
+
+```powershell
+cd C:\projektek\szakdoga\generator
+
+npm install
+
+npm run parse:dump -- ..\db\diaknyilvantartas.sql .\out
+npm run gen:backend
+npm run start:backend
+```
+
+### Frontend
+
+```powershell
+cd C:\projektek\szakdoga\frontend
+
+npm install
+npm run dev
+```
+
+### MySQL ellenőrzés
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 3306
+& "C:\xampp\mysql\bin\mysql.exe" -h 127.0.0.1 -P 3306 -u root -e "SHOW DATABASES;"
+```
+
+---
+
+## 18. Rövid demonstrációs forgatókönyv
+
+Egy bemutatón a következő lépések érdemesek:
+
+1. MySQL fut XAMPP-ben.
+2. `diaknyilvantartas` adatbázis importálva.
+3. `generator/.env`:
+
+```env
+DB_NAME=diaknyilvantartas
+```
+
+4. Parser:
+
+```powershell
+npm run parse:dump -- ..\db\diaknyilvantartas.sql .\out
+```
+
+5. Backend generálás:
+
+```powershell
+npm run gen:backend
+```
+
+6. Backend indítás:
+
+```powershell
+npm run start:backend
+```
+
+7. Frontend indítás:
+
+```powershell
+cd C:\projektek\szakdoga\frontend
+npm run dev
+```
+
+8. Böngészőben:
+   - táblák listázása,
+   - új rekord beszúrása,
+   - rekord szerkesztése,
+   - rekord törlése,
+   - statisztika lekérdezése.
+
+Másik adatbázis bemutatása esetén:
+
+1. importálni az új DB-t,
+2. `.env` `DB_NAME` átírás,
+3. `parse:dump` az új SQL fájlra,
+4. `gen:backend`,
+5. backend újraindítás,
+6. frontend frissítés.
+

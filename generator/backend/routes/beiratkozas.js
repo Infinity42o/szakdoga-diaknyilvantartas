@@ -1,10 +1,10 @@
-// Auto-generated CRUD for table kurzus
+// Auto-generated CRUD for table beiratkozas
 const express = require('express');
 const { Op } = require('sequelize');
 const router = express.Router();
 
 function buildPkWhere(Model, req, res) {
-  const pkFields = ["id"];
+  const pkFields = ["hallgato_id","kurzus_id"];
   const where = {};
   const attrs = Model.rawAttributes || {};
 
@@ -38,7 +38,7 @@ function buildPkWhere(Model, req, res) {
 }
 
 function cleanAutoIncrementPayload(body) {
-  const autoIncrementFields = ["id"];
+  const autoIncrementFields = [];
   const payload = { ...(body || {}) };
 
   // Csak explicit AUTO_INCREMENT mezőket törlünk, és csak akkor,
@@ -56,7 +56,7 @@ function cleanAutoIncrementPayload(body) {
 // LIST
 router.get('/', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Beiratkozas = req.app.get('models')["beiratkozas"];
     const { limit, offset, where, filters } = req.query;
     const opts = {};
 
@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
         const parsed = JSON.parse(filters);
         const arr = Array.isArray(parsed) ? parsed : [];
         const conds = [];
-        const attrs = Kurzus.rawAttributes || {};
+        const attrs = Beiratkozas.rawAttributes || {};
 
         for (const f of arr) {
           if (!f || !f.col) continue;
@@ -190,7 +190,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const rows = await Kurzus.findAll(opts);
+    const rows = await Beiratkozas.findAll(opts);
     res.json(rows);
   } catch (e) {
     console.error(e);
@@ -199,14 +199,14 @@ router.get('/', async (req, res) => {
 });
 
 // GET BY PK
-router.get('/:id', async (req, res) => {
+router.get('/:hallgato_id/:kurzus_id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Beiratkozas = req.app.get('models')["beiratkozas"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Beiratkozas, req, res);
     if (!where) return;
 
-    const row = await Kurzus.findOne({ where });
+    const row = await Beiratkozas.findOne({ where });
 
     if (!row) {
       return res.status(404).json({ error: 'NOT_FOUND' });
@@ -222,7 +222,7 @@ router.get('/:id', async (req, res) => {
 // CREATE
 router.post('/', async (req, res) => {
   try {
-    const Model = req.app.get('models')["kurzus"];
+    const Model = req.app.get('models')["beiratkozas"];
     const payload = cleanAutoIncrementPayload(req.body);
 
     const created = await Model.create(payload);
@@ -253,22 +253,22 @@ router.post('/', async (req, res) => {
 });
 
 // UPDATE BY PK
-router.put('/:id', async (req, res) => {
+router.put('/:hallgato_id/:kurzus_id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Beiratkozas = req.app.get('models')["beiratkozas"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Beiratkozas, req, res);
     if (!where) return;
 
     const payload = cleanAutoIncrementPayload(req.body);
 
-    const [cnt] = await Kurzus.update(payload, { where });
+    const [cnt] = await Beiratkozas.update(payload, { where });
 
     if (!cnt) {
       return res.status(404).json({ error: 'NOT_FOUND' });
     }
 
-    const row = await Kurzus.findOne({ where });
+    const row = await Beiratkozas.findOne({ where });
     res.json(row);
   } catch (e) {
     console.error(e);
@@ -277,14 +277,14 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE BY PK
-router.delete('/:id', async (req, res) => {
+router.delete('/:hallgato_id/:kurzus_id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Beiratkozas = req.app.get('models')["beiratkozas"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Beiratkozas, req, res);
     if (!where) return;
 
-    const cnt = await Kurzus.destroy({ where });
+    const cnt = await Beiratkozas.destroy({ where });
 
     if (!cnt) {
       return res.status(404).json({ error: 'NOT_FOUND' });

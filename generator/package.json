@@ -6,7 +6,7 @@
   "type": "commonjs",
   "scripts": {
     "clean": "powershell -NoLogo -NoProfile -Command \"Remove-Item -Recurse -Force .\\out -ErrorAction SilentlyContinue; New-Item -ItemType Directory .\\out | Out-Null\"",
-    "parse:dump": "node .\\src\\generate.js ..\\db\\teszt_halado.sql .\\out",
+    "parse:dump": "node .\\src\\generate.js",
     "gen:backend": "node .\\src\\generate-backend.js .\\out\\schema.json .\\backend",
     "start:backend": "node -r dotenv/config ./backend/app.js",
     "gen:backend:local": "node .\\src\\generate-backend.js .\\out\\schema.json .\\out\\backend --orm=sequelize --with-routes --with-openapi --with-seeds",

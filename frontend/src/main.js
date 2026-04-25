@@ -241,13 +241,14 @@ function renderLayout() {
     .map((key, idx) => `<section id="view-${key}" class="view ${idx === 0 ? "" : "hidden"}"></section>`)
     .join("");
 
-  const firstEntityTitle = Object.values(ENTITIES)[0]?.title || "CRUD";
+  const firstEntityKey = Object.keys(ENTITIES)[0];
+  const firstEntityTitle = ENTITIES[firstEntityKey]?.title || "CRUD";
   const appTitle = `Generált alkalmazás – ${firstEntityTitle}`;
 
   app.innerHTML = `
     <div class="app">
       <header class="topbar">
-        <h1>${escapeHtml(appTitle)}</h1>
+        <h1 id="app-title">${escapeHtml(appTitle)}</h1>
         <span class="env-badge">API: ${API_BASE}</span>
       </header>
 
@@ -275,6 +276,15 @@ function renderLayout() {
           ? document.querySelector("#view-stats")
           : document.querySelector(`#view-${view}`);
       if (target) target.classList.remove("hidden");
+      const titleEl = document.querySelector("#app-title");
+      if (titleEl) {
+      const title =
+        view === "stats"
+          ? "Statisztikák"
+          : ENTITIES[view]?.title || "CRUD";
+
+      titleEl.textContent = `Generált alkalmazás – ${title}`;
+    }
     });
   });
 }

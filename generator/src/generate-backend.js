@@ -1,10 +1,9 @@
-// src/generate-backend.js
 const fs = require("fs");
 const path = require("path");
 
-const [,, schemaPathArg, outRootArg] = process.argv;
+const [, , schemaPathArg, outRootArg] = process.argv;
 const schemaPath = path.resolve(process.cwd(), schemaPathArg || "./out/schema.json");
-const outRoot    = path.resolve(process.cwd(), outRootArg  || "./backend");
+const outRoot = path.resolve(process.cwd(), outRootArg || "./backend");
 
 if (!fs.existsSync(schemaPath)) {
   console.error("Nem találom a sémát:", schemaPath);
@@ -12,14 +11,27 @@ if (!fs.existsSync(schemaPath)) {
 }
 
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
+
 fs.mkdirSync(outRoot, { recursive: true });
 fs.mkdirSync(path.join(outRoot, "models"), { recursive: true });
 fs.mkdirSync(path.join(outRoot, "routes"), { recursive: true });
 fs.mkdirSync(path.join(outRoot, "db"), { recursive: true });
 
 // --- Helper-ek ---
-const toPascal = s => s.replace(/[_-](\w)/g, (_,c)=>c.toUpperCase()).replace(/^\w/, c=>c.toUpperCase());
-const toCamel  = s => s.replace(/[_-](\w)/g, (_,c)=>c.toUpperCase()).replace(/^\w/, c=>c.toLowerCase());
+
+const toPascal = (s) =>
+  String(s)
+    .replace(/[_-](\w)/g, (_, c) => c.toUpperCase())
+    .replace(/^\w/, (c) => c.toUpperCase());
+
+const toCamel = (s) =>
+  String(s)
+    .replace(/[_-](\w)/g, (_, c) => c.toUpperCase())
+    .replace(/^\w/, (c) => c.toLowerCase());
+
+function getTableName(table) {
+  return table.name || table.table || table.modelKey || table.label;
+}
 
 function normalizePk(table) {
   let pk = table.primaryKey;
@@ -29,43 +41,109 @@ function normalizePk(table) {
   if (Array.isArray(pk)) {
     arr = pk.slice();
   }
-  // 2) primaryKey lehet string (akár "a,b")
+  // 2) primaryKey lehet string, akár "a,b"
   else if (typeof pk === "string" && pk.trim()) {
-    arr = pk.split(",").map(s => s.trim()).filter(Boolean);
+    arr = pk.split(",").map((s) => s.trim()).filter(Boolean);
   }
 
   // 3) ha nincs primaryKey mező, próbáljuk a columns.primaryKey flagből
   if (!arr.length && Array.isArray(table.columns)) {
-    arr = table.columns.filter(c => c.primaryKey).map(c => c.name);
+    arr = table.columns.filter((c) => c.primaryKey).map((c) => c.name);
   }
 
   // 4) stabil sorrend: table.columns sorrendje
   if (Array.isArray(table.columns) && table.columns.length) {
-    const order = table.columns.map(c => c.name);
+    const order = table.columns.map((c) => c.name);
     arr.sort((a, b) => order.indexOf(a) - order.indexOf(b));
   }
 
-  // dedupe
   return Array.from(new Set(arr));
 }
 
 function getUniqueGroups(table) {
-  // Visszafelé kompatibilis: a parser uniqueKeys-et ad, de régebbi kódok uniqueIndexes-et vártak.
+  // Visszafelé kompatibilis:
+  // a parser uniqueKeys-et adhat, régebbi kód uniqueIndexes-et várhatott.
   return table.uniqueKeys || table.uniqueIndexes || [];
+}
+
+function isAutoIncrementColumn(col) {
+  if (!col) return false;
+
+  return (
+    col.autoIncrement === true ||
+    col.auto_increment === true ||
+    col.autoincrement === true ||
+    String(col.extra || "").toLowerCase().includes("auto_increment") ||
+    String(col.raw || "").toUpperCase().includes("AUTO_INCREMENT")
+  );
+}
+
+function getAutoIncrementFields(table) {
+  if (!table || !Array.isArray(table.columns)) return [];
+  return table.columns
+    .filter((col) => isAutoIncrementColumn(col))
+    .map((col) => col.name);
+}
+
+function normalizeForeignKeys(table) {
+  const tableName = getTableName(table);
+
+  if (Array.isArray(table.foreignKeys) && table.foreignKeys.length) {
+    return table.foreignKeys.map((fk) => {
+      const sourceFields = fk.columns || fk.fields || (fk.column ? [fk.column] : []);
+      const ref = fk.references || {};
+      const targetTable = ref.table || ref.model;
+      const targetFields = ref.columns || (ref.key ? [ref.key] : []);
+
+      return {
+        name: fk.name,
+        columns: sourceFields,
+        references: {
+          table: targetTable,
+          columns: targetFields,
+        },
+      };
+    });
+  }
+
+  // Fallback: ha FK csak oszlopszinten szerepel a schema.json-ben
+  if (Array.isArray(table.columns)) {
+    return table.columns
+      .filter((col) => col.isForeignKey && col.references)
+      .map((col) => ({
+        name: `fk_${tableName}_${col.references.model || col.references.table || "ref"}`,
+        columns: [col.name],
+        references: {
+          table: col.references.model || col.references.table,
+          columns: [col.references.key || "id"],
+        },
+      }));
+  }
+
+  return [];
 }
 
 function mapSqlTypeToSequelize(col) {
   const t = (col.type || "").toUpperCase();
+
+  if (t === "BOOLEAN" || t === "BOOL") return "DataTypes.BOOLEAN";
+
   if (col.enumValues && col.enumValues.length) {
-    const vals = col.enumValues.map(v => `'${v.replace(/'/g, "\\'")}'`).join(", ");
+    const vals = col.enumValues
+      .map((v) => `'${String(v).replace(/'/g, "\\'")}'`)
+      .join(", ");
     return `DataTypes.ENUM(${vals})`;
   }
-  if (t.startsWith("INT")) return "DataTypes.INTEGER";
+
   if (t.startsWith("BIGINT")) return "DataTypes.BIGINT";
+
+  if (t.startsWith("INT") || t.startsWith("INTEGER")) return "DataTypes.INTEGER";
+
   if (t.startsWith("SMALLINT") || t.startsWith("TINYINT")) {
     if (/TINYINT\(\s*1\s*\)/i.test(col.type)) return "DataTypes.BOOLEAN";
     return "DataTypes.SMALLINT";
   }
+
   if (t.startsWith("DECIMAL") || t.startsWith("NUMERIC")) return "DataTypes.DECIMAL";
   if (t.startsWith("FLOAT")) return "DataTypes.FLOAT";
   if (t.startsWith("DOUBLE")) return "DataTypes.DOUBLE";
@@ -75,24 +153,33 @@ function mapSqlTypeToSequelize(col) {
   if (t.startsWith("DATE") && !t.includes("TIME")) return "DataTypes.DATEONLY";
   if (t.includes("TIME")) return "DataTypes.DATE";
   if (t.startsWith("JSON")) return "DataTypes.JSON";
+
   return "DataTypes.STRING";
 }
 
 function defaultVal(col) {
-  if (!("default" in col) || col.default === undefined || col.default === null) return undefined;
+  if (!("default" in col) || col.default === undefined || col.default === null) {
+    return undefined;
+  }
 
   const raw = String(col.default).trim();
   const d = raw.toUpperCase();
 
-  // DEFAULT NULL -> ne generáljunk defaultValue-t (különben 'NULL' string lesz)
+  // DEFAULT NULL -> ne generáljunk defaultValue-t, különben 'NULL' string lehetne.
   if (d === "NULL") return undefined;
 
-  if (d === "CURRENT_TIMESTAMP" || d === "CURRENT_TIMESTAMP()") return "DataTypes.NOW";
+  if (d === "CURRENT_TIMESTAMP" || d === "CURRENT_TIMESTAMP()") {
+    return "DataTypes.NOW";
+  }
 
-  // numerikus default (idézőjelek nélkül)
+  // numerikus default
   if (/^-?\d+(\.\d+)?$/.test(raw)) return raw;
 
-  // string default: ha már idézőjelesen jönne, szedjük le a szélső idézőket
+  // boolean jellegű default
+  if (d === "TRUE") return "true";
+  if (d === "FALSE") return "false";
+
+  // string default
   let s = raw;
   if (
     (s.length >= 2 && s.startsWith("'") && s.endsWith("'")) ||
@@ -100,57 +187,85 @@ function defaultVal(col) {
   ) {
     s = s.slice(1, -1);
   }
+
   return `'${String(s).replace(/'/g, "\\'")}'`;
 }
 
 function renderModel(table) {
-  const className = toPascal(table.name);
+  const tableName = getTableName(table);
+  const className = toPascal(tableName);
   const pk = normalizePk(table);
-  const uniqueMap = new Map();
 
-  (getUniqueGroups(table) || []).forEach(ui => {
-    uniqueMap.set(ui.name || ("uq_" + ui.columns.join("_")), ui.columns);
+  const cols = (table.columns || [])
+    .map((col) => {
+      const parts = [];
+
+      parts.push(`${JSON.stringify(col.name)}: {`);
+      parts.push(`  type: ${mapSqlTypeToSequelize(col)},`);
+
+      if (pk.includes(col.name)) {
+        parts.push(`  primaryKey: true,`);
+      }
+
+      if (isAutoIncrementColumn(col)) {
+        parts.push(`  autoIncrement: true,`);
+      }
+
+      if (col.allowNull === false || col.nullable === false) {
+        parts.push(`  allowNull: false,`);
+      }
+
+      if (col.unique === true) {
+        parts.push(`  unique: true,`);
+      }
+
+      const dv = defaultVal(col);
+      if (dv) {
+        parts.push(`  defaultValue: ${dv},`);
+      }
+
+      if (col.comment) {
+        parts.push(`  comment: ${JSON.stringify(col.comment)},`);
+      }
+
+      parts.push(`}`);
+
+      return parts.join("\n");
+    })
+    .join(",\n");
+
+  const indexItems = [];
+  const uniqueGroups = getUniqueGroups(table);
+
+  (table.indexes || []).forEach((i) => {
+    if (!i || !Array.isArray(i.columns) || !i.columns.length) return;
+    indexItems.push(
+      `{ name: ${JSON.stringify(i.name || "ix_" + i.columns.join("_"))}, fields: ${JSON.stringify(i.columns)} }`
+    );
   });
 
-  const cols = table.columns.map(col => {
-    const parts = [];
-    parts.push(`${col.name}: {`);
-    parts.push(`  type: ${mapSqlTypeToSequelize(col)},`);
-    if (pk.includes(col.name)) parts.push(`  primaryKey: true,`);
-    if (col.autoIncrement === true) parts.push(`  autoIncrement: true,`);
-      if (col.allowNull === false || col.nullable === false) parts.push(`  allowNull: false,`);
-    if (col.unique === true) parts.push(`  unique: true,`);
-    const dv = defaultVal(col);
-    if (dv) parts.push(`  defaultValue: ${dv},`);
-    if (col.comment) parts.push(`  comment: ${JSON.stringify(col.comment)},`);
-    parts.push(`}`);
-    return parts.join("\n");
-  }).join(",\n");
+  (uniqueGroups || []).forEach((u) => {
+    if (!u || !Array.isArray(u.columns) || !u.columns.length) return;
+    indexItems.push(
+      `{ name: ${JSON.stringify(u.name || "uq_" + u.columns.join("_"))}, unique: true, fields: ${JSON.stringify(u.columns)} }`
+    );
+  });
 
-  let indexes = "";
-    const uniqueGroups = getUniqueGroups(table);
-  if ((table.indexes && table.indexes.length) || (uniqueGroups && uniqueGroups.length)) {
-    const ix = [];
-    (table.indexes||[]).forEach(i => ix.push(`{ name: ${JSON.stringify(i.name||"ix_"+i.columns.join("_"))}, fields: ${JSON.stringify(i.columns)} }`));
-    (uniqueGroups||[]).forEach(u => ix.push(`{ name: ${JSON.stringify(u.name||"uq_"+u.columns.join("_"))}, unique: true, fields: ${JSON.stringify(u.columns)} }`));
-    if (ix.length) {
-      indexes = `
-  ,{
+  const indexBlock = indexItems.length
+    ? `,
     indexes: [
-      ${ix.join(",\n      ")}
-    ]
-  }`;
-    }
-  }
+      ${indexItems.join(",\n      ")}
+    ]`
+    : "";
 
   return `// Auto-generated by generate-backend.js
 module.exports = (sequelize, DataTypes) => {
-  const ${className} = sequelize.define('${table.name}', {
+  const ${className} = sequelize.define(${JSON.stringify(tableName)}, {
     ${cols}
   }, {
-    tableName: '${table.name}',
-    timestamps: false
-  }${indexes});
+    tableName: ${JSON.stringify(tableName)},
+    timestamps: false${indexBlock}
+  });
 
   ${className}.associate = (models) => {
     ${renderAssociations(table)}
@@ -161,39 +276,58 @@ module.exports = (sequelize, DataTypes) => {
 }
 
 function renderAssociations(table) {
-  if (!table.foreignKeys || !table.foreignKeys.length) return "// nincsenek FK-k";
-  return table.foreignKeys.map((fk) => {
-    const sourceFields = fk.columns;
-    const targetTable = fk.references.table;
-    const targetFields = fk.references.columns;
-    if (sourceFields.length === 1 && targetFields.length === 1) {
-      const asName = toCamel(targetTable);
-      return [
-        `// FK ${fk.name || ("fk_"+table.name+"_"+targetTable)} (${sourceFields[0]} -> ${targetTable}.${targetFields[0]})`,
-        `models['${table.name}'].belongsTo(models['${targetTable}'], {`,
-        `  as: '${asName}',`,
-        `  foreignKey: '${sourceFields[0]}'`,
-        `});`,
-        `models['${targetTable}'].hasMany(models['${table.name}'], {`,
-        `  as: '${toCamel(table.name)}List',`,
-        `  foreignKey: '${sourceFields[0]}'`,
-        `});`
-      ].join("\n");
-    }
-    return `// Kompozit FK kihagyva asszociációként: (${sourceFields.join(", ")}) -> ${targetTable}(${targetFields.join(", ")})`;
-  }).join("\n\n");
+  const tableName = getTableName(table);
+  const foreignKeys = normalizeForeignKeys(table);
+
+  if (!foreignKeys.length) return "// nincsenek FK-k";
+
+  return foreignKeys
+    .map((fk) => {
+      const sourceFields = fk.columns || [];
+      const targetTable = fk.references && fk.references.table;
+      const targetFields = (fk.references && fk.references.columns) || [];
+
+      if (
+        sourceFields.length === 1 &&
+        targetTable &&
+        targetFields.length === 1
+      ) {
+        const asName = toCamel(targetTable);
+
+        return [
+          `// FK ${fk.name || "fk_" + tableName + "_" + targetTable} (${sourceFields[0]} -> ${targetTable}.${targetFields[0]})`,
+          `if (models[${JSON.stringify(targetTable)}]) {`,
+          `  models[${JSON.stringify(tableName)}].belongsTo(models[${JSON.stringify(targetTable)}], {`,
+          `    as: ${JSON.stringify(asName)},`,
+          `    foreignKey: ${JSON.stringify(sourceFields[0])},`,
+          `    targetKey: ${JSON.stringify(targetFields[0])}`,
+          `  });`,
+          `  models[${JSON.stringify(targetTable)}].hasMany(models[${JSON.stringify(tableName)}], {`,
+          `    as: ${JSON.stringify(toCamel(tableName) + "List")},`,
+          `    foreignKey: ${JSON.stringify(sourceFields[0])},`,
+          `    sourceKey: ${JSON.stringify(targetFields[0])}`,
+          `  });`,
+          `}`,
+        ].join("\n");
+      }
+
+      return `// Kompozit FK kihagyva asszociációként: (${sourceFields.join(", ")}) -> ${targetTable || "?"}(${targetFields.join(", ")})`;
+    })
+    .join("\n\n");
 }
 
 function renderRoute(table) {
-  const className = toPascal(table.name);
+  const tableName = getTableName(table);
+  const className = toPascal(tableName);
 
-  const pk = normalizePk(table);                 // <-- FIX
-  const pkFields = pk.length ? pk : ["id"];      // fallback
-  const pkParams = pk.length ? pk.map(k => `:${k}`).join("/") : ":id";
+  const pk = normalizePk(table);
+  const pkFields = pk.length ? pk : ["id"];
+  const pkParams = pk.length ? pk.map((k) => `:${k}`).join("/") : ":id";
+  const autoIncrementFields = getAutoIncrementFields(table);
 
-  const loadModelLine = `const ${className} = req.app.get('models')['${table.name}'];`;
+  const loadModelLine = `const ${className} = req.app.get('models')[${JSON.stringify(tableName)}];`;
 
-  return `// Auto-generated CRUD for table ${table.name}
+  return `// Auto-generated CRUD for table ${tableName}
 const express = require('express');
 const { Op } = require('sequelize');
 const router = express.Router();
@@ -232,12 +366,29 @@ function buildPkWhere(Model, req, res) {
   return where;
 }
 
+function cleanAutoIncrementPayload(body) {
+  const autoIncrementFields = ${JSON.stringify(autoIncrementFields)};
+  const payload = { ...(body || {}) };
+
+  // Csak explicit AUTO_INCREMENT mezőket törlünk, és csak akkor,
+  // ha üres/null/undefined értékkel jönnek.
+  // Nem találgatunk mezőnév alapján, ezért nem rontja el a többi DB-t.
+  for (const f of autoIncrementFields) {
+    if (payload[f] === undefined || payload[f] === null || payload[f] === '') {
+      delete payload[f];
+    }
+  }
+
+  return payload;
+}
+
 // LIST
 router.get('/', async (req, res) => {
   try {
     ${loadModelLine}
     const { limit, offset, where, filters } = req.query;
     const opts = {};
+
     if (limit) opts.limit = Number(limit);
     if (offset) opts.offset = Number(offset);
 
@@ -250,6 +401,7 @@ router.get('/', async (req, res) => {
 
         for (const f of arr) {
           if (!f || !f.col) continue;
+
           const col = f.col;
           const op = String(f.op || 'eq').toLowerCase();
           const val = f.val;
@@ -264,35 +416,43 @@ router.get('/', async (req, res) => {
           }
 
           const attr = attrs[col];
+          if (!attr) continue;
+
           const typeKey = attr && attr.type && attr.type.key;
           const isStringType = ['STRING', 'TEXT', 'CHAR', 'ENUM'].includes(typeKey);
           const isNumericType = [
-            'INTEGER','BIGINT','FLOAT','DOUBLE','DECIMAL','REAL','SMALLINT','TINYINT','MEDIUMINT'
+            'INTEGER','BIGINT','FLOAT','DOUBLE','DECIMAL','REAL',
+            'SMALLINT','TINYINT','MEDIUMINT'
           ].includes(typeKey);
           const isDateType = ['DATE', 'DATEONLY'].includes(typeKey);
 
-          // típusra castolás (scalar vagy tömb)
           const castOne = (x) => {
             if (isNumericType) {
               const n = Number(x);
               if (Number.isNaN(n)) return { ok: false };
               return { ok: true, v: n };
             }
+
             if (typeKey === 'BOOLEAN') {
               if (x === true || x === 'true' || x === '1' || x === 1) return { ok: true, v: true };
               if (x === false || x === 'false' || x === '0' || x === 0) return { ok: true, v: false };
               return { ok: false };
             }
+
             if (isDateType) {
-              if (typeof x === 'string' && /^\\d{4}-\\d{2}-\\d{2}/.test(x)) return { ok: true, v: x };
+              if (typeof x === 'string' && /^\\d{4}-\\d{2}-\\d{2}/.test(x)) {
+                return { ok: true, v: x };
+              }
               return { ok: false };
             }
+
             return { ok: true, v: x };
           };
 
           let typedVal;
+
           if (Array.isArray(val)) {
-            const arrVals = val.map(castOne).filter(r => r.ok).map(r => r.v);
+            const arrVals = val.map(castOne).filter((r) => r.ok).map((r) => r.v);
             if (!arrVals.length) continue;
             typedVal = arrVals;
           } else {
@@ -304,12 +464,13 @@ router.get('/', async (req, res) => {
           const isArrayVal = Array.isArray(typedVal);
 
           let expr;
+
           switch (op) {
             case 'in':
               expr = { [col]: { [Op.in]: isArrayVal ? typedVal : [typedVal] } };
               break;
+
             case 'like':
-              // LIKE csak string típusokra – különben essünk vissza sima egyenlőségre
               if (isArrayVal) {
                 expr = { [col]: { [Op.in]: typedVal } };
               } else if (isStringType) {
@@ -318,18 +479,23 @@ router.get('/', async (req, res) => {
                 expr = { [col]: typedVal };
               }
               break;
+
             case 'gte':
               expr = { [col]: { [Op.gte]: typedVal } };
               break;
+
             case 'lte':
               expr = { [col]: { [Op.lte]: typedVal } };
               break;
+
             case 'gt':
               expr = { [col]: { [Op.gt]: typedVal } };
               break;
+
             case 'lt':
               expr = { [col]: { [Op.lt]: typedVal } };
               break;
+
             default:
               expr = isArrayVal
                 ? { [col]: { [Op.in]: typedVal } }
@@ -365,11 +531,16 @@ router.get('/', async (req, res) => {
 router.get('/${pkParams}', async (req, res) => {
   try {
     ${loadModelLine}
+
     const where = buildPkWhere(${className}, req, res);
     if (!where) return;
 
     const row = await ${className}.findOne({ where });
-    if (!row) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    if (!row) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     res.json(row);
   } catch (e) {
     console.error(e);
@@ -380,13 +551,17 @@ router.get('/${pkParams}', async (req, res) => {
 // CREATE
 router.post('/', async (req, res) => {
   try {
-    const Model = req.app.get('models')['${table.name}'];
-    const created = await Model.create(req.body);
+    const Model = req.app.get('models')[${JSON.stringify(tableName)}];
+    const payload = cleanAutoIncrementPayload(req.body);
+
+    const created = await Model.create(payload);
     res.status(201).json(created);
   } catch (e) {
     console.error(e);
+
     if (e.name === 'SequelizeUniqueConstraintError') {
       const detail = e.errors?.[0];
+
       return res.status(409).json({
         error: 'UNIQUE_VIOLATION',
         field: detail?.path || 'unknown',
@@ -394,12 +569,14 @@ router.post('/', async (req, res) => {
         message: detail?.message || 'Unique constraint violated'
       });
     }
+
     if (e.name === 'SequelizeValidationError') {
       return res.status(400).json({
         error: 'VALIDATION_FAILED',
-        details: e.errors.map(x => ({ field: x.path, message: x.message }))
+        details: e.errors.map((x) => ({ field: x.path, message: x.message }))
       });
     }
+
     res.status(400).json({ error: 'CREATE_FAILED' });
   }
 });
@@ -408,11 +585,18 @@ router.post('/', async (req, res) => {
 router.put('/${pkParams}', async (req, res) => {
   try {
     ${loadModelLine}
+
     const where = buildPkWhere(${className}, req, res);
     if (!where) return;
 
-    const [cnt] = await ${className}.update(req.body, { where });
-    if (!cnt) return res.status(404).json({ error: 'NOT_FOUND' });
+    const payload = cleanAutoIncrementPayload(req.body);
+
+    const [cnt] = await ${className}.update(payload, { where });
+
+    if (!cnt) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     const row = await ${className}.findOne({ where });
     res.json(row);
   } catch (e) {
@@ -425,11 +609,16 @@ router.put('/${pkParams}', async (req, res) => {
 router.delete('/${pkParams}', async (req, res) => {
   try {
     ${loadModelLine}
+
     const where = buildPkWhere(${className}, req, res);
     if (!where) return;
 
     const cnt = await ${className}.destroy({ where });
-    if (!cnt) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    if (!cnt) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     res.status(204).end();
   } catch (e) {
     console.error(e);
@@ -441,10 +630,12 @@ module.exports = router;`;
 }
 
 // --- DB INDEX ---
+
 function renderDbIndex() {
   return `// Auto-generated DB index
 const { Sequelize, DataTypes } = require('sequelize');
 const dotenv = require('dotenv');
+
 dotenv.config();
 
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASS, {
@@ -455,16 +646,22 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
 });
 
 const models = {};
+
 function loadModels() {
   const fs = require('fs');
   const path = require('path');
   const modelsDir = path.join(__dirname, '..', 'models');
-  for (const file of fs.readdirSync(modelsDir).filter(f => f.endsWith('.js'))) {
+
+  for (const file of fs.readdirSync(modelsDir).filter((f) => f.endsWith('.js'))) {
     const def = require(path.join(modelsDir, file));
     const mdl = def(sequelize, DataTypes);
     models[mdl.getTableName()] = mdl;
   }
-  Object.values(models).forEach(m => { if (m.associate) m.associate(models); });
+
+  Object.values(models).forEach((m) => {
+    if (m.associate) m.associate(models);
+  });
+
   return models;
 }
 
@@ -520,8 +717,11 @@ function buildFkMapFromAssociations(model) {
     if (!fk) continue;
 
     let refTable = null;
+
     try {
-      const tn = a.target?.getTableName ? a.target.getTableName() : (a.target?.tableName || a.target?.name);
+      const tn = a.target?.getTableName
+        ? a.target.getTableName()
+        : (a.target?.tableName || a.target?.name);
       refTable = normalizeTableName(tn);
     } catch {}
 
@@ -544,7 +744,6 @@ function buildTableMeta(models) {
 
     const attrs = model.rawAttributes;
 
-    // FK-k asszociációból (megbízhatóbb nálad, mint attr.references)
     const fkMap = buildFkMapFromAssociations(model);
 
     const columns = [];
@@ -560,7 +759,12 @@ function buildTableMeta(models) {
     for (const [name, attr] of Object.entries(attrs)) {
       const typeObj = attr.type;
       const rawTypeKey =
-        typeObj && (typeObj.key || (typeof typeObj.toSql === 'function' ? typeObj.toSql() : null) || String(typeObj));
+        typeObj && (
+          typeObj.key ||
+          (typeof typeObj.toSql === 'function' ? typeObj.toSql() : null) ||
+          String(typeObj)
+        );
+
       const typeKey = rawTypeKey ? String(rawTypeKey).toUpperCase() : '';
       const typeKeyShort = typeKey.split('(')[0];
 
@@ -570,7 +774,6 @@ function buildTableMeta(models) {
         lower.endsWith('_id') ||
         (lower.endsWith('id') && lower.length <= 4);
 
-      // FK felismerés: references vagy belongsTo asszociáció
       const assocRef = fkMap.get(name);
       const isFk = !!attr.references || !!assocRef;
 
@@ -579,11 +782,22 @@ function buildTableMeta(models) {
         type: typeKeyShort || typeKey || String(typeObj),
         allowNull: (attr.allowNull !== false),
         primaryKey: !!attr.primaryKey,
+        autoIncrement: !!attr.autoIncrement,
         isForeignKey: isFk,
       };
 
+      const enumValues =
+        Array.isArray(typeObj?.values) ? typeObj.values :
+        Array.isArray(attr.values) ? attr.values :
+        null;
+
+      if (enumValues && enumValues.length) {
+        col.enumValues = enumValues;
+      }
+
       if (isFk) {
         const refModel = normalizeRefModel(attr.references?.model || assocRef?.model);
+
         col.references = {
           model: refModel,
           key: attr.references?.key || assocRef?.key || 'id',
@@ -593,21 +807,19 @@ function buildTableMeta(models) {
 
       columns.push(col);
 
-      // METRIKA: numerikus, de ne legyen FK (ID-kre nincs értelmes SUM/AVG),
-      // és ne legyen ID-szerű
+      // METRIKA: numerikus, de ne legyen FK és ne legyen ID-szerű.
       if (numericTypes.includes(typeKeyShort) && !isIdLike && !isFk) {
         metrics.push(name);
       }
 
       // DIMENZIÓ: kategóriás/PK/numerikus is lehet,
-      // de ID-szerűt alapból kihagyjuk - KIVÉVE ha FK (mert erre kell stat!)
+      // de ID-szerűt alapból kihagyunk, kivéve FK esetén.
       const dimAllowed = (!isIdLike) || isFk;
 
       if ((catTypes.includes(typeKeyShort) || attr.primaryKey) && dimAllowed) {
         dims.push(name);
       }
 
-      // numerikus dimenziók (pl. jegy, evfolyam, kredit) + FK-k (akkor is ha PK része)
       if (numericTypes.includes(typeKeyShort) && dimAllowed) {
         dims.push(name);
       }
@@ -649,9 +861,11 @@ const router = express.Router();
 function getSequelize(req) {
   const models = req.app.get('models') || {};
   const anyModel = Object.values(models)[0];
+
   if (!anyModel) {
     throw new Error('NO_MODELS');
   }
+
   return anyModel.sequelize;
 }
 
@@ -681,10 +895,16 @@ router.get('/aggregate', async (req, res) => {
 
   const allowedAgg = ['count', 'sum', 'avg', 'min', 'max'];
   agg = String(agg).toLowerCase();
-  if (!allowedAgg.includes(agg)) agg = 'count';
+
+  if (!allowedAgg.includes(agg)) {
+    agg = 'count';
+  }
 
   const wantExcludeNull = String(excludeNull || '').toLowerCase();
-  const shouldExcludeNull = (wantExcludeNull === '1' || wantExcludeNull === 'true' || wantExcludeNull === 'yes');
+  const shouldExcludeNull =
+    wantExcludeNull === '1' ||
+    wantExcludeNull === 'true' ||
+    wantExcludeNull === 'yes';
 
   try {
     const sequelize = getSequelize(req);
@@ -704,12 +924,12 @@ router.get('/aggregate', async (req, res) => {
     if (agg === 'count') {
       aggExpr = 'COUNT(*)';
     } else {
-      // ha nincs field, próbáljunk numeric oszlopot keresni (ID-k és PK-k nélkül)
       if (!usedField || !desc[usedField]) {
         const numericCandidates = Object.keys(desc).filter((col) => {
           const info = desc[col] || {};
           const type = String(info.type || '');
           const lower = col.toLowerCase();
+
           const isIdLike =
             lower === 'id' ||
             lower.endsWith('_id') ||
@@ -748,15 +968,14 @@ router.get('/aggregate', async (req, res) => {
       aggExpr = agg.toUpperCase() + '(' + qid(usedField) + ')';
     }
 
-    // where JSON -> egyszerű = feltételek (egyenlőség) + opcionális NULL kizárás
     let whereClause = '';
     const replacements = {};
     const parts = [];
 
     if (shouldExcludeNull) {
       parts.push(qid(groupBy) + ' IS NOT NULL');
+
       if (agg !== 'count') {
-        // MIN/AVG esetén fontos: ha egy csoportban minden metrika NULL, az eredmény NULL lesz
         parts.push(qid(usedField) + ' IS NOT NULL');
       }
     }
@@ -765,14 +984,16 @@ router.get('/aggregate', async (req, res) => {
       try {
         const w = JSON.parse(where);
         let idx = 0;
+
         for (const [col, val] of Object.entries(w)) {
           if (!desc[col]) continue;
+
           const key = 'w' + idx++;
           parts.push(qid(col) + ' = :' + key);
           replacements[key] = val;
         }
       } catch (e) {
-        // rossz JSON -> nincs extra WHERE feltétel
+        // Rossz JSON esetén nincs extra WHERE feltétel.
       }
     }
 
@@ -802,23 +1023,29 @@ module.exports = router;
 }
 
 function renderApp(tables) {
-  const mounts = (tables || []).map(t => {
-    const routeVar = toCamel(t.name) + "Router";
-    return `const ${routeVar} = require('./routes/${t.name}.js');
-app.use('/api/${t.name}', ${routeVar});`;
-  }).join("\n\n");
+  const mounts = (tables || [])
+    .map((t) => {
+      const tableName = getTableName(t);
+      const routeVar = toCamel(tableName) + "Router";
+
+      return `const ${routeVar} = require('./routes/${tableName}.js');
+app.use('/api/${tableName}', ${routeVar});`;
+    })
+    .join("\n\n");
 
   return `// Auto-generated Express app
 const express = require('express');
 const cors = require('cors');
 const { sequelize, loadModels } = require('./db');
 const dotenv = require('dotenv');
+
 dotenv.config();
 
 const statsRouter = require('./routes/stats.js');
-const metaRouter  = require('./routes/meta.js');
+const metaRouter = require('./routes/meta.js');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
 
@@ -842,18 +1069,36 @@ app.use('/api/stats', statsRouter);
 app.use('/api/meta', metaRouter);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
-app.listen(PORT, () => console.log('Megy, API listening on port', PORT));
+
+app.listen(PORT, () => {
+  console.log('Megy, API listening on port', PORT);
+});
 `;
 }
 
 // --- Generálás ---
 
 for (const table of schema.tables || []) {
+  const tableName = getTableName(table);
+
+  if (!tableName) {
+    console.warn("Kihagyott tábla, mert nincs neve:", table);
+    continue;
+  }
+
   const modelCode = renderModel(table);
-  fs.writeFileSync(path.join(outRoot, "models", `${table.name}.js`), modelCode, "utf8");
+  fs.writeFileSync(
+    path.join(outRoot, "models", `${tableName}.js`),
+    modelCode,
+    "utf8"
+  );
 
   const routeCode = renderRoute(table);
-  fs.writeFileSync(path.join(outRoot, "routes", `${table.name}.js`), routeCode, "utf8");
+  fs.writeFileSync(
+    path.join(outRoot, "routes", `${tableName}.js`),
+    routeCode,
+    "utf8"
+  );
 }
 
 // meta + generikus stats route minden generált backendhez

@@ -11,6 +11,10 @@
 // - NEW: toggleable ID display for FK labels (Név (#15))
 // - NEW: smarter FK label picking; avoids date-like labels (e.g. felev) and can fall back to 1-hop FK label (e.g. kursus -> tantargy.nev)
 
+import Chart from "chart.js/auto";
+
+let chartInstance = null;
+
 async function apiGetJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`);

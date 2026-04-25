@@ -44,8 +44,11 @@ function buildFkMapFromAssociations(model) {
     if (!fk) continue;
 
     let refTable = null;
+
     try {
-      const tn = a.target?.getTableName ? a.target.getTableName() : (a.target?.tableName || a.target?.name);
+      const tn = a.target?.getTableName
+        ? a.target.getTableName()
+        : (a.target?.tableName || a.target?.name);
       refTable = normalizeTableName(tn);
     } catch {}
 
@@ -68,7 +71,6 @@ function buildTableMeta(models) {
 
     const attrs = model.rawAttributes;
 
-    // FK-k asszociációból (megbízhatóbb nálad, mint attr.references)
     const fkMap = buildFkMapFromAssociations(model);
 
     const columns = [];
@@ -84,7 +86,12 @@ function buildTableMeta(models) {
     for (const [name, attr] of Object.entries(attrs)) {
       const typeObj = attr.type;
       const rawTypeKey =
-        typeObj && (typeObj.key || (typeof typeObj.toSql === 'function' ? typeObj.toSql() : null) || String(typeObj));
+        typeObj && (
+          typeObj.key ||
+          (typeof typeObj.toSql === 'function' ? typeObj.toSql() : null) ||
+          String(typeObj)
+        );
+
       const typeKey = rawTypeKey ? String(rawTypeKey).toUpperCase() : '';
       const typeKeyShort = typeKey.split('(')[0];
 
@@ -94,7 +101,6 @@ function buildTableMeta(models) {
         lower.endsWith('_id') ||
         (lower.endsWith('id') && lower.length <= 4);
 
-      // FK felismerés: references vagy belongsTo asszociáció
       const assocRef = fkMap.get(name);
       const isFk = !!attr.references || !!assocRef;
 
@@ -103,11 +109,22 @@ function buildTableMeta(models) {
         type: typeKeyShort || typeKey || String(typeObj),
         allowNull: (attr.allowNull !== false),
         primaryKey: !!attr.primaryKey,
+        autoIncrement: !!attr.autoIncrement,
         isForeignKey: isFk,
       };
 
+      const enumValues =
+        Array.isArray(typeObj?.values) ? typeObj.values :
+        Array.isArray(attr.values) ? attr.values :
+        null;
+
+      if (enumValues && enumValues.length) {
+        col.enumValues = enumValues;
+      }
+
       if (isFk) {
         const refModel = normalizeRefModel(attr.references?.model || assocRef?.model);
+
         col.references = {
           model: refModel,
           key: attr.references?.key || assocRef?.key || 'id',
@@ -117,21 +134,19 @@ function buildTableMeta(models) {
 
       columns.push(col);
 
-      // METRIKA: numerikus, de ne legyen FK (ID-kre nincs értelmes SUM/AVG),
-      // és ne legyen ID-szerű
+      // METRIKA: numerikus, de ne legyen FK és ne legyen ID-szerű.
       if (numericTypes.includes(typeKeyShort) && !isIdLike && !isFk) {
         metrics.push(name);
       }
 
       // DIMENZIÓ: kategóriás/PK/numerikus is lehet,
-      // de ID-szerűt alapból kihagyjuk - KIVÉVE ha FK (mert erre kell stat!)
+      // de ID-szerűt alapból kihagyunk, kivéve FK esetén.
       const dimAllowed = (!isIdLike) || isFk;
 
       if ((catTypes.includes(typeKeyShort) || attr.primaryKey) && dimAllowed) {
         dims.push(name);
       }
 
-      // numerikus dimenziók (pl. jegy, evfolyam, kredit) + FK-k (akkor is ha PK része)
       if (numericTypes.includes(typeKeyShort) && dimAllowed) {
         dims.push(name);
       }

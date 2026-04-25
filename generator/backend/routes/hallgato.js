@@ -37,12 +37,29 @@ function buildPkWhere(Model, req, res) {
   return where;
 }
 
+function cleanAutoIncrementPayload(body) {
+  const autoIncrementFields = ["id"];
+  const payload = { ...(body || {}) };
+
+  // Csak explicit AUTO_INCREMENT mezőket törlünk, és csak akkor,
+  // ha üres/null/undefined értékkel jönnek.
+  // Nem találgatunk mezőnév alapján, ezért nem rontja el a többi DB-t.
+  for (const f of autoIncrementFields) {
+    if (payload[f] === undefined || payload[f] === null || payload[f] === '') {
+      delete payload[f];
+    }
+  }
+
+  return payload;
+}
+
 // LIST
 router.get('/', async (req, res) => {
   try {
-    const Hallgato = req.app.get('models')['hallgato'];
+    const Hallgato = req.app.get('models')["hallgato"];
     const { limit, offset, where, filters } = req.query;
     const opts = {};
+
     if (limit) opts.limit = Number(limit);
     if (offset) opts.offset = Number(offset);
 
@@ -55,6 +72,7 @@ router.get('/', async (req, res) => {
 
         for (const f of arr) {
           if (!f || !f.col) continue;
+
           const col = f.col;
           const op = String(f.op || 'eq').toLowerCase();
           const val = f.val;
@@ -69,35 +87,43 @@ router.get('/', async (req, res) => {
           }
 
           const attr = attrs[col];
+          if (!attr) continue;
+
           const typeKey = attr && attr.type && attr.type.key;
           const isStringType = ['STRING', 'TEXT', 'CHAR', 'ENUM'].includes(typeKey);
           const isNumericType = [
-            'INTEGER','BIGINT','FLOAT','DOUBLE','DECIMAL','REAL','SMALLINT','TINYINT','MEDIUMINT'
+            'INTEGER','BIGINT','FLOAT','DOUBLE','DECIMAL','REAL',
+            'SMALLINT','TINYINT','MEDIUMINT'
           ].includes(typeKey);
           const isDateType = ['DATE', 'DATEONLY'].includes(typeKey);
 
-          // típusra castolás (scalar vagy tömb)
           const castOne = (x) => {
             if (isNumericType) {
               const n = Number(x);
               if (Number.isNaN(n)) return { ok: false };
               return { ok: true, v: n };
             }
+
             if (typeKey === 'BOOLEAN') {
               if (x === true || x === 'true' || x === '1' || x === 1) return { ok: true, v: true };
               if (x === false || x === 'false' || x === '0' || x === 0) return { ok: true, v: false };
               return { ok: false };
             }
+
             if (isDateType) {
-              if (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}/.test(x)) return { ok: true, v: x };
+              if (typeof x === 'string' && /^\d{4}-\d{2}-\d{2}/.test(x)) {
+                return { ok: true, v: x };
+              }
               return { ok: false };
             }
+
             return { ok: true, v: x };
           };
 
           let typedVal;
+
           if (Array.isArray(val)) {
-            const arrVals = val.map(castOne).filter(r => r.ok).map(r => r.v);
+            const arrVals = val.map(castOne).filter((r) => r.ok).map((r) => r.v);
             if (!arrVals.length) continue;
             typedVal = arrVals;
           } else {
@@ -109,12 +135,13 @@ router.get('/', async (req, res) => {
           const isArrayVal = Array.isArray(typedVal);
 
           let expr;
+
           switch (op) {
             case 'in':
               expr = { [col]: { [Op.in]: isArrayVal ? typedVal : [typedVal] } };
               break;
+
             case 'like':
-              // LIKE csak string típusokra – különben essünk vissza sima egyenlőségre
               if (isArrayVal) {
                 expr = { [col]: { [Op.in]: typedVal } };
               } else if (isStringType) {
@@ -123,18 +150,23 @@ router.get('/', async (req, res) => {
                 expr = { [col]: typedVal };
               }
               break;
+
             case 'gte':
               expr = { [col]: { [Op.gte]: typedVal } };
               break;
+
             case 'lte':
               expr = { [col]: { [Op.lte]: typedVal } };
               break;
+
             case 'gt':
               expr = { [col]: { [Op.gt]: typedVal } };
               break;
+
             case 'lt':
               expr = { [col]: { [Op.lt]: typedVal } };
               break;
+
             default:
               expr = isArrayVal
                 ? { [col]: { [Op.in]: typedVal } }
@@ -169,12 +201,17 @@ router.get('/', async (req, res) => {
 // GET BY PK
 router.get('/:id', async (req, res) => {
   try {
-    const Hallgato = req.app.get('models')['hallgato'];
+    const Hallgato = req.app.get('models')["hallgato"];
+
     const where = buildPkWhere(Hallgato, req, res);
     if (!where) return;
 
     const row = await Hallgato.findOne({ where });
-    if (!row) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    if (!row) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     res.json(row);
   } catch (e) {
     console.error(e);
@@ -185,13 +222,17 @@ router.get('/:id', async (req, res) => {
 // CREATE
 router.post('/', async (req, res) => {
   try {
-    const Model = req.app.get('models')['hallgato'];
-    const created = await Model.create(req.body);
+    const Model = req.app.get('models')["hallgato"];
+    const payload = cleanAutoIncrementPayload(req.body);
+
+    const created = await Model.create(payload);
     res.status(201).json(created);
   } catch (e) {
     console.error(e);
+
     if (e.name === 'SequelizeUniqueConstraintError') {
       const detail = e.errors?.[0];
+
       return res.status(409).json({
         error: 'UNIQUE_VIOLATION',
         field: detail?.path || 'unknown',
@@ -199,12 +240,14 @@ router.post('/', async (req, res) => {
         message: detail?.message || 'Unique constraint violated'
       });
     }
+
     if (e.name === 'SequelizeValidationError') {
       return res.status(400).json({
         error: 'VALIDATION_FAILED',
-        details: e.errors.map(x => ({ field: x.path, message: x.message }))
+        details: e.errors.map((x) => ({ field: x.path, message: x.message }))
       });
     }
+
     res.status(400).json({ error: 'CREATE_FAILED' });
   }
 });
@@ -212,12 +255,19 @@ router.post('/', async (req, res) => {
 // UPDATE BY PK
 router.put('/:id', async (req, res) => {
   try {
-    const Hallgato = req.app.get('models')['hallgato'];
+    const Hallgato = req.app.get('models')["hallgato"];
+
     const where = buildPkWhere(Hallgato, req, res);
     if (!where) return;
 
-    const [cnt] = await Hallgato.update(req.body, { where });
-    if (!cnt) return res.status(404).json({ error: 'NOT_FOUND' });
+    const payload = cleanAutoIncrementPayload(req.body);
+
+    const [cnt] = await Hallgato.update(payload, { where });
+
+    if (!cnt) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     const row = await Hallgato.findOne({ where });
     res.json(row);
   } catch (e) {
@@ -229,12 +279,17 @@ router.put('/:id', async (req, res) => {
 // DELETE BY PK
 router.delete('/:id', async (req, res) => {
   try {
-    const Hallgato = req.app.get('models')['hallgato'];
+    const Hallgato = req.app.get('models')["hallgato"];
+
     const where = buildPkWhere(Hallgato, req, res);
     if (!where) return;
 
     const cnt = await Hallgato.destroy({ where });
-    if (!cnt) return res.status(404).json({ error: 'NOT_FOUND' });
+
+    if (!cnt) {
+      return res.status(404).json({ error: 'NOT_FOUND' });
+    }
+
     res.status(204).end();
   } catch (e) {
     console.error(e);

@@ -5,9 +5,11 @@ const router = express.Router();
 function getSequelize(req) {
   const models = req.app.get('models') || {};
   const anyModel = Object.values(models)[0];
+
   if (!anyModel) {
     throw new Error('NO_MODELS');
   }
+
   return anyModel.sequelize;
 }
 
@@ -37,10 +39,16 @@ router.get('/aggregate', async (req, res) => {
 
   const allowedAgg = ['count', 'sum', 'avg', 'min', 'max'];
   agg = String(agg).toLowerCase();
-  if (!allowedAgg.includes(agg)) agg = 'count';
+
+  if (!allowedAgg.includes(agg)) {
+    agg = 'count';
+  }
 
   const wantExcludeNull = String(excludeNull || '').toLowerCase();
-  const shouldExcludeNull = (wantExcludeNull === '1' || wantExcludeNull === 'true' || wantExcludeNull === 'yes');
+  const shouldExcludeNull =
+    wantExcludeNull === '1' ||
+    wantExcludeNull === 'true' ||
+    wantExcludeNull === 'yes';
 
   try {
     const sequelize = getSequelize(req);
@@ -60,12 +68,12 @@ router.get('/aggregate', async (req, res) => {
     if (agg === 'count') {
       aggExpr = 'COUNT(*)';
     } else {
-      // ha nincs field, próbáljunk numeric oszlopot keresni (ID-k és PK-k nélkül)
       if (!usedField || !desc[usedField]) {
         const numericCandidates = Object.keys(desc).filter((col) => {
           const info = desc[col] || {};
           const type = String(info.type || '');
           const lower = col.toLowerCase();
+
           const isIdLike =
             lower === 'id' ||
             lower.endsWith('_id') ||
@@ -104,15 +112,14 @@ router.get('/aggregate', async (req, res) => {
       aggExpr = agg.toUpperCase() + '(' + qid(usedField) + ')';
     }
 
-    // where JSON -> egyszerű = feltételek (egyenlőség) + opcionális NULL kizárás
     let whereClause = '';
     const replacements = {};
     const parts = [];
 
     if (shouldExcludeNull) {
       parts.push(qid(groupBy) + ' IS NOT NULL');
+
       if (agg !== 'count') {
-        // MIN/AVG esetén fontos: ha egy csoportban minden metrika NULL, az eredmény NULL lesz
         parts.push(qid(usedField) + ' IS NOT NULL');
       }
     }
@@ -121,14 +128,16 @@ router.get('/aggregate', async (req, res) => {
       try {
         const w = JSON.parse(where);
         let idx = 0;
+
         for (const [col, val] of Object.entries(w)) {
           if (!desc[col]) continue;
+
           const key = 'w' + idx++;
           parts.push(qid(col) + ' = :' + key);
           replacements[key] = val;
         }
       } catch (e) {
-        // rossz JSON -> nincs extra WHERE feltétel
+        // Rossz JSON esetén nincs extra WHERE feltétel.
       }
     }
 

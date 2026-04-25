@@ -1,4 +1,4 @@
-// Auto-generated CRUD for table kurzus
+// Auto-generated CRUD for table tantargy
 const express = require('express');
 const { Op } = require('sequelize');
 const router = express.Router();
@@ -56,7 +56,7 @@ function cleanAutoIncrementPayload(body) {
 // LIST
 router.get('/', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Tantargy = req.app.get('models')["tantargy"];
     const { limit, offset, where, filters } = req.query;
     const opts = {};
 
@@ -68,7 +68,7 @@ router.get('/', async (req, res) => {
         const parsed = JSON.parse(filters);
         const arr = Array.isArray(parsed) ? parsed : [];
         const conds = [];
-        const attrs = Kurzus.rawAttributes || {};
+        const attrs = Tantargy.rawAttributes || {};
 
         for (const f of arr) {
           if (!f || !f.col) continue;
@@ -190,7 +190,7 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const rows = await Kurzus.findAll(opts);
+    const rows = await Tantargy.findAll(opts);
     res.json(rows);
   } catch (e) {
     console.error(e);
@@ -201,12 +201,12 @@ router.get('/', async (req, res) => {
 // GET BY PK
 router.get('/:id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Tantargy = req.app.get('models')["tantargy"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Tantargy, req, res);
     if (!where) return;
 
-    const row = await Kurzus.findOne({ where });
+    const row = await Tantargy.findOne({ where });
 
     if (!row) {
       return res.status(404).json({ error: 'NOT_FOUND' });
@@ -222,7 +222,7 @@ router.get('/:id', async (req, res) => {
 // CREATE
 router.post('/', async (req, res) => {
   try {
-    const Model = req.app.get('models')["kurzus"];
+    const Model = req.app.get('models')["tantargy"];
     const payload = cleanAutoIncrementPayload(req.body);
 
     const created = await Model.create(payload);
@@ -255,20 +255,20 @@ router.post('/', async (req, res) => {
 // UPDATE BY PK
 router.put('/:id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Tantargy = req.app.get('models')["tantargy"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Tantargy, req, res);
     if (!where) return;
 
     const payload = cleanAutoIncrementPayload(req.body);
 
-    const [cnt] = await Kurzus.update(payload, { where });
+    const [cnt] = await Tantargy.update(payload, { where });
 
     if (!cnt) {
       return res.status(404).json({ error: 'NOT_FOUND' });
     }
 
-    const row = await Kurzus.findOne({ where });
+    const row = await Tantargy.findOne({ where });
     res.json(row);
   } catch (e) {
     console.error(e);
@@ -279,12 +279,12 @@ router.put('/:id', async (req, res) => {
 // DELETE BY PK
 router.delete('/:id', async (req, res) => {
   try {
-    const Kurzus = req.app.get('models')["kurzus"];
+    const Tantargy = req.app.get('models')["tantargy"];
 
-    const where = buildPkWhere(Kurzus, req, res);
+    const where = buildPkWhere(Tantargy, req, res);
     if (!where) return;
 
-    const cnt = await Kurzus.destroy({ where });
+    const cnt = await Tantargy.destroy({ where });
 
     if (!cnt) {
       return res.status(404).json({ error: 'NOT_FOUND' });
