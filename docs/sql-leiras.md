@@ -326,3 +326,5 @@ A frontend normál esetben nem igényel táblaspecifikus módosítást, mert a t
 A négy mintaadatbázis együtt jól mutatja a generátor működési tartományát. A rendszer nem a teljes MySQL nyelv minden lehetséges elemét próbálja lefedni, hanem a feladat szempontjából lényeges és gyakori szerkezeteket kezeli: táblák, oszlopok, kulcsok, idegen kulcsok, indexek, enumok, automatikusan növekvő azonosítók és kezdeti adatok.
 
 A példák alapján a generátor alkalmas arra, hogy különböző felépítésű MySQL/MariaDB scriptekből működő CRUD és statisztikai felületet biztosító alkalmazást állítson elő. A tesztadatbázisok ezért nemcsak fejlesztési segédeszközök, hanem a szakdolgozati demonstráció fontos bizonyítékai is.
+=======
+A példák alapján a generátor alkalmas arra, hogy különböző felépítésű MySQL/MariaDB scriptekből működő CRUD és statisztikai felületet biztosító alkalmazást állítson elő. A tesztadatbázisok ezért nemcsak fejlesztési segédeszközök, hanem a szakdolgozati demonstráció fontos bizonyítékai is.

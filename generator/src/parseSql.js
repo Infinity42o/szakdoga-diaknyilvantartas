@@ -425,8 +425,7 @@ function parseSchema(sqlRaw) {
     const { columns, primaryKey, foreignKeys, uniqueKeys, indexes } = parseColumnsAndConstraintsFromCreate(body);
     tableMap.set(table, { name: table, columns, primaryKey, foreignKeys, uniqueKeys, indexes });
   }
-
-  // ALTER TABLE-k (PK/FK/UNIQUE/INDEX hozzĂ„â€šĂ‹â€ˇfĂ„Ä…Ă‚Â±zĂ„â€šĂ‚Â©s)
+ 
   const alterBlocks = parseAlterTableBlocks(sql);
   for (const { table, body } of alterBlocks) {
     const t = tableMap.get(table);
@@ -447,7 +446,7 @@ function parseSchema(sqlRaw) {
     }
   }
 
-  // NĂ„â€šĂ‚Â©zetek kiszĂ„Ä…Ă‚Â±rĂ„â€šĂ‚Â©se Ä‚ËĂ˘â€šÂ¬Ă˘â‚¬Ĺ› tĂ„â€šĂ‚Â¶bb variĂ„â€šĂ‹â€ˇns kezelĂ„â€šĂ‚Â©se
+  // INFORMATION_SCHEMA-szerű adatok kigyűjtése a CREATE/ALTER blokkokból
  const viewRegex =
   /CREATE\s+(?:OR\s+REPLACE\s+)?(?:ALGORITHM\s*=\s*\w+\s+)?(?:DEFINER\s*=\s*.*?\s+)?(?:SQL\s+SECURITY\s+\w+\s+)?VIEW\s+`?(\w+)`?/gim;
   let vm;
